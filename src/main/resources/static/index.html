@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SmartStudent — Admin Portal</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <!-- APP SHELL -->
+  <div id="app">
+    <!-- SIDEBAR (hidden on login) -->
+    <aside id="sidebar" class="sidebar hidden">
+      <div class="sidebar-brand">
+        <div class="brand-icon">🎓</div>
+        <span class="brand-name">SmartStudent</span>
+      </div>
+      <nav class="sidebar-nav">
+        <a class="nav-item" href="#dashboard" onclick="navigate('dashboard')"><span class="nav-icon">📊</span>
+          Dashboard</a>
+        <a class="nav-item" href="#students" onclick="navigate('students')"><span class="nav-icon">👥</span>
+          Students</a>
+        <a class="nav-item" href="#register" onclick="navigate('register')"><span class="nav-icon">➕</span> Register
+          Student</a>
+        <a class="nav-item" href="#subjects" onclick="navigate('subjects')"><span class="nav-icon">📚</span>
+          Subjects</a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="admin-info">
+          <div class="admin-avatar">A</div>
+          <div>
+            <div id="admin-name" class="admin-username">Admin</div>
+            <div class="admin-role">ROLE_ADMIN</div>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="logout()">Logout</button>
+      </div>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main id="main-content" class="main-content full-width">
+      <div id="page-container"></div>
+    </main>
+  </div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- MODAL -->
+  <div id="modal-overlay" class="modal-overlay hidden" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+      <div id="modal-content"></div>
+    </div>
+  </div>
+
+  <script src="api.js?v=8"></script>
+  <script src="pages.js?v=8"></script>
+  <script src="app.js?v=8"></script>
+</body>
+
+</html>

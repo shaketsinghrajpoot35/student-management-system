@@ -1,0 +1,18 @@
+package com.smartstudent.main.enums;
+
+public enum DocumentType {
+    AADHAAR,
+    SAMAGRA_ID,
+    APAAR_ID,
+    PAN_CARD,
+    INCOME_CERTIFICATE,
+    DOMICILE_CERTIFICATE,
+    BIRTH_CERTIFICATE,
+    CASTE_CERTIFICATE,
+    TRANSFER_CERTIFICATE,
+    ADMISSION_FORM,
+    MP_TASS,
+    MARKSHEET,
+    STUDENT_PHOTO,
+    PASSBOOK
+}

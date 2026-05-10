@@ -1,0 +1,294 @@
+/* pages.js — HTML generators for each page */
+
+const Pages = {
+
+  login: () => `
+<div class="login-page">
+  <div class="login-card fade-in">
+    <div class="login-logo">
+      <span class="icon">🎓</span>
+      <h1>SmartStudent</h1>
+      <p>Secure Admin Portal</p>
+    </div>
+    <div id="login-error" class="login-error"></div>
+    <div class="form-group">
+      <label class="form-label">Username</label>
+      <input id="username" class="form-control" placeholder="admin" type="text" autocomplete="username"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input id="password" class="form-control" placeholder="••••••••" type="password" autocomplete="current-password"/>
+    </div>
+    <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doLogin()">Login to Portal</button>
+  </div>
+</div>`,
+
+  dashboard: (stats) => `
+<div class="fade-in">
+  <div class="page-header">
+    <div><div class="page-title">Dashboard</div><div class="page-subtitle">Welcome back, Administrator</div></div>
+  </div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value">${stats.total||0}</div><div class="stat-label">Total Students</div></div>
+    <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value">${stats.active||0}</div><div class="stat-label">Active Students</div></div>
+    <div class="stat-card"><div class="stat-icon">📚</div><div class="stat-value">${stats.subjects||0}</div><div class="stat-label">Total Subjects</div></div>
+    <div class="stat-card"><div class="stat-icon">📁</div><div class="stat-value">${stats.docs||0}</div><div class="stat-label">Documents Uploaded</div></div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;flex-wrap:wrap">
+    <div class="card">
+      <div class="card-header"><span class="card-title">Quick Actions</span></div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <button class="btn btn-primary" onclick="navigate('register')">➕ Register New Student</button>
+        <button class="btn btn-secondary" onclick="navigate('students')">👥 View All Students</button>
+        <button class="btn btn-secondary" onclick="navigate('subjects')">📚 Manage Subjects</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">Recent Students</span></div>
+      <div id="recent-list"><div class="loading"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</div>`,
+
+  students: (data, search) => `
+<div class="fade-in">
+  <div class="page-header">
+    <div><div class="page-title">Students</div><div class="page-subtitle">${data.totalElements||0} students found</div></div>
+    <button class="btn btn-primary" onclick="navigate('register')">➕ Register Student</button>
+  </div>
+  <div class="card">
+    <div class="search-row">
+      <input id="s-name" class="form-control search-input" placeholder="Search by name..." value="${search.name||''}" oninput="debounceSearch()"/>
+      <input id="s-samagra" class="form-control" style="width:160px" placeholder="Samagra ID" value="${search.samagraId||''}"/>
+      <input id="s-class" class="form-control" style="width:120px" placeholder="Class" value="${search.className||''}"/>
+      <select id="s-stream" class="form-control" style="width:130px">
+        <option value="">All Streams</option>
+        ${['PCM','PCB','PCMB','COMMERCE','ARTS','GENERAL'].map(s=>`<option ${search.stream===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+      <button class="btn btn-primary" onclick="searchStudents()">🔍 Search</button>
+      <button class="btn btn-secondary" onclick="clearSearch()">✕ Clear</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Name</th><th>Samagra ID</th><th>Mobile</th><th>City</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody>
+          ${(data.content||[]).length===0?`<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔍</div><p>No students found</p></div></td></tr>`:
+          (data.content||[]).map((s,i)=>`
+          <tr>
+            <td>${(data.pageNumber*data.pageSize)+i+1}</td>
+            <td><strong>${s.fullName}</strong></td>
+            <td><span class="badge badge-gray">${s.samagraId}</span></td>
+            <td>${s.mobileNumber||'-'}</td>
+            <td>${s.city||'-'}</td>
+            <td><span class="badge ${s.studentStatus==='ACTIVE'?'badge-green':'badge-yellow'}">${s.studentStatus}</span></td>
+            <td><div class="td-actions">
+              <button class="btn btn-info btn-sm" onclick="navigate('student-detail',${s.id})">👁 View</button>
+              <button class="btn btn-secondary btn-sm" onclick="navigate('edit',${s.id})">✏️ Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="confirmDelete(${s.id},'${s.fullName}')">🗑</button>
+            </div></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+</div>`,
+
+  subjects: (list) => `
+<div class="fade-in">
+  <div class="page-header">
+    <div><div class="page-title">Subjects</div><div class="page-subtitle">${list.length} subjects</div></div>
+    <button class="btn btn-primary" onclick="showAddSubject()">➕ Add Subject</button>
+  </div>
+  <div class="card">
+    <div class="chips">
+      ${list.length===0?'<p style="color:var(--text-muted)">No subjects yet.</p>':
+      list.map(s=>`<div class="chip">📚 ${s.subjectName} <small>[${s.subjectCode||'-'}]</small></div>`).join('')}
+    </div>
+    <div style="margin-top:24px">
+    <table><thead><tr><th>ID</th><th>Subject Name</th><th>Code</th><th>Description</th></tr></thead>
+    <tbody>${list.map(s=>`<tr><td>${s.id}</td><td><strong>${s.subjectName}</strong></td><td><span class="badge badge-blue">${s.subjectCode||'-'}</span></td><td>${s.description||'-'}</td></tr>`).join('')}</tbody>
+    </table></div>
+  </div>
+</div>`,
+
+  studentDetail: (fd) => {
+    const s = fd.personalInfo || {};
+    const ac = fd.academicDetails || {};
+    const bk = fd.bankDetails || {};
+    const docs = fd.documents || [];
+    const subs = fd.subjects || [];
+    return `
+<div class="fade-in">
+  <div class="page-header">
+    <div>
+      <div class="page-title">👤 ${s.fullName}</div>
+      <div class="page-subtitle">Samagra ID: ${s.samagraId} &nbsp;|&nbsp; <span class="badge ${s.studentStatus==='ACTIVE'?'badge-green':'badge-yellow'}">${s.studentStatus}</span></div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-secondary" onclick="navigate('students')">← Back</button>
+      <button class="btn btn-primary" onclick="navigate('edit',${s.id})">✏️ Edit Student</button>
+    </div>
+  </div>
+  <div class="tabs" id="detail-tabs">
+    <button class="tab-btn active" onclick="showTab('personal')">👤 Personal</button>
+    <button class="tab-btn" onclick="showTab('academic')">🎓 Academic</button>
+    <button class="tab-btn" onclick="showTab('subjects')">📚 Subjects</button>
+    <button class="tab-btn" onclick="showTab('documents')">📁 Documents</button>
+    <button class="tab-btn" onclick="showTab('bank')">🏦 Bank</button>
+  </div>
+  <div id="tab-personal" class="tab-pane card">
+    <div class="form-section-title">Personal Information</div>
+    <div class="detail-grid">
+      ${[['Full Name',s.fullName],['Gender',s.gender],['DOB',s.dateOfBirth],['Blood Group',s.bloodGroup],['Category',s.category],['Religion',s.religion],['Nationality',s.nationality],['Father',s.fatherName],['Mother',s.motherName],['Guardian',s.guardianName],['Mobile',s.mobileNumber],['Alt Mobile',s.alternateMobileNumber],['Email',s.email],['Address',s.address],['City',s.city],['State',s.state],['Pincode',s.pincode],['Admission Date',s.admissionDate],['Status',s.studentStatus]].map(([l,v])=>`<div class="detail-item"><div class="detail-label">${l}</div><div class="detail-value">${v||'—'}</div></div>`).join('')}
+    </div>
+  </div>
+  <div id="tab-academic" class="tab-pane card" style="display:none">
+    <div class="form-section-title">Academic Information</div>
+    <div class="detail-grid">
+      ${[['Class',ac.className],['Section',ac.section],['Roll No',ac.rollNumber],['Admission No',ac.admissionNumber],['Board',ac.board],['Academic Year',ac.academicYear],['Stream',ac.stream],['Prev School',ac.previousSchool],['Prev %',ac.previousPercentage]].map(([l,v])=>`<div class="detail-item"><div class="detail-label">${l}</div><div class="detail-value">${v||'—'}</div></div>`).join('')}
+    </div>
+  </div>
+  <div id="tab-subjects" class="tab-pane card" style="display:none">
+    <div class="form-section-title">Subjects (${subs.length})</div>
+    <div class="chips">${subs.length===0?'<p style="color:var(--text-muted)">No subjects assigned.</p>':subs.map(s=>`<div class="chip">📚 ${s.subjectName}</div>`).join('')}</div>
+  </div>
+  <div id="tab-documents" class="tab-pane card" style="display:none">
+    <div class="card-header"><span class="form-section-title" style="margin:0">Documents (${docs.length})</span>
+      <button class="btn btn-primary btn-sm" onclick="showUploadDoc(${s.id})">📤 Upload Document</button>
+    </div>
+    <div class="doc-grid">
+      ${docs.length===0?'<div class="empty-state"><div class="empty-icon">📁</div><p>No documents uploaded yet.</p></div>':
+      docs.map(d=>`<div class="doc-card">
+        <div class="doc-type">${d.documentType}</div>
+        <div class="doc-number">No: ${d.documentNumber||'—'}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">${d.uploadDate?d.uploadDate.substring(0,10):''} &nbsp;<span class="badge ${d.verificationStatus==='VERIFIED'?'badge-green':d.verificationStatus==='REJECTED'?'badge-red':'badge-yellow'}">${d.verificationStatus}</span></div>
+        <div class="doc-actions">
+          <a href="${api.downloadUrl(d.id)}&token=${api.getToken()}" target="_blank" class="btn btn-info btn-sm">⬇ Download</a>
+          <button class="btn btn-danger btn-sm" onclick="deleteDoc(${d.id},${s.id})">🗑</button>
+        </div>
+      </div>`).join('')}
+    </div>
+  </div>
+  <div id="tab-bank" class="tab-pane card" style="display:none">
+    <div class="form-section-title">Bank Details</div>
+    <div class="detail-grid">
+      ${[['Bank',bk.bankName],['Branch',bk.branchName],['IFSC',bk.ifscCode],['Account No',bk.accountNumber],['Holder',bk.accountHolderName]].map(([l,v])=>`<div class="detail-item"><div class="detail-label">${l}</div><div class="detail-value">${v||'—'}</div></div>`).join('')}
+    </div>
+  </div>
+</div>`; },
+
+  registerForm: (prefill, subjectList) => {
+    const p = (prefill && prefill.personalInfo) || {};
+    const ac = (prefill && prefill.academicDetails) || {};
+    const bk = (prefill && prefill.bankDetails) || {};
+    const subs = (prefill && prefill.subjects) || [];
+    const isEdit = !!prefill;
+    return `
+<div class="fade-in">
+  <div class="page-header">
+    <div><div class="page-title">${isEdit?'✏️ Edit Student':'➕ Register Student'}</div></div>
+    <button class="btn btn-secondary" onclick="navigate(${isEdit?`'student-detail',currentStudentId`:"'students'"})">← Back</button>
+  </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="showFormTab('f-personal')">👤 Personal</button>
+    <button class="tab-btn" onclick="showFormTab('f-academic')">🎓 Academic</button>
+    <button class="tab-btn" onclick="showFormTab('f-subjects')">📚 Subjects</button>
+    <button class="tab-btn" onclick="showFormTab('f-bank')">🏦 Bank</button>
+    <button class="tab-btn" onclick="showFormTab('f-documents')">📁 Documents</button>
+  </div>
+
+  <!-- PERSONAL -->
+  <div id="f-personal" class="tab-pane card">
+    <div class="form-section-title">Personal Information</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Samagra ID *</label><input id="f-samagraId" class="form-control" value="${p.samagraId||''}" placeholder="e.g. SM12345678"/></div>
+      <div class="form-group"><label class="form-label">Full Name *</label><input id="f-fullName" class="form-control" value="${p.fullName||''}" placeholder="Full Name"/></div>
+      <div class="form-group"><label class="form-label">Gender *</label>
+        <select id="f-gender" class="form-control">${['','MALE','FEMALE','OTHER'].map(v=>`<option ${p.gender===v?'selected':''} value="${v}">${v||'Select'}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Date of Birth *</label><input id="f-dob" class="form-control" type="date" value="${p.dateOfBirth||''}"/></div>
+      <div class="form-group"><label class="form-label">Blood Group</label>
+        <select id="f-blood" class="form-control">${['','A_POSITIVE','A_NEGATIVE','B_POSITIVE','B_NEGATIVE','O_POSITIVE','O_NEGATIVE','AB_POSITIVE','AB_NEGATIVE'].map(v=>`<option ${p.bloodGroup===v?'selected':''} value="${v}">${v||'Select'}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Category</label>
+        <select id="f-category" class="form-control">${['','GENERAL','OBC','SC','ST','EWS'].map(v=>`<option ${p.category===v?'selected':''} value="${v}">${v||'Select'}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Religion</label><input id="f-religion" class="form-control" value="${p.religion||''}"/></div>
+      <div class="form-group"><label class="form-label">Nationality</label><input id="f-nationality" class="form-control" value="${p.nationality||'Indian'}"/></div>
+      <div class="form-group"><label class="form-label">Father's Name</label><input id="f-father" class="form-control" value="${p.fatherName||''}"/></div>
+      <div class="form-group"><label class="form-label">Mother's Name</label><input id="f-mother" class="form-control" value="${p.motherName||''}"/></div>
+      <div class="form-group"><label class="form-label">Mobile *</label><input id="f-mobile" class="form-control" value="${p.mobileNumber||''}" placeholder="10-digit mobile"/></div>
+      <div class="form-group"><label class="form-label">Email</label><input id="f-email" class="form-control" type="email" value="${p.email||''}"/></div>
+      <div class="form-group"><label class="form-label">City</label><input id="f-city" class="form-control" value="${p.city||''}"/></div>
+      <div class="form-group"><label class="form-label">State</label><input id="f-state" class="form-control" value="${p.state||''}"/></div>
+      <div class="form-group"><label class="form-label">Pincode</label><input id="f-pincode" class="form-control" value="${p.pincode||''}"/></div>
+      <div class="form-group"><label class="form-label">Address</label><input id="f-address" class="form-control" value="${p.address||''}"/></div>
+      <div class="form-group"><label class="form-label">Admission Date</label><input id="f-admDate" class="form-control" type="date" value="${p.admissionDate||''}"/></div>
+      <div class="form-group"><label class="form-label">Status</label>
+        <select id="f-status" class="form-control">${['ACTIVE','INACTIVE','TRANSFERRED','DROPPED'].map(v=>`<option ${(p.studentStatus||'ACTIVE')===v?'selected':''} value="${v}">${v}</option>`).join('')}</select></div>
+    </div>
+  </div>
+
+  <!-- ACADEMIC -->
+  <div id="f-academic" class="tab-pane card" style="display:none">
+    <div class="form-section-title">Academic Information</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Class</label><input id="f-class" class="form-control" value="${ac.className||''}"/></div>
+      <div class="form-group"><label class="form-label">Section</label><input id="f-section" class="form-control" value="${ac.section||''}"/></div>
+      <div class="form-group"><label class="form-label">Roll Number</label><input id="f-roll" class="form-control" value="${ac.rollNumber||''}"/></div>
+      <div class="form-group"><label class="form-label">Admission Number</label><input id="f-admNo" class="form-control" value="${ac.admissionNumber||''}"/></div>
+      <div class="form-group"><label class="form-label">Board</label><input id="f-board" class="form-control" value="${ac.board||''}"/></div>
+      <div class="form-group"><label class="form-label">Academic Year</label><input id="f-year" class="form-control" value="${ac.academicYear||''}"/></div>
+      <div class="form-group"><label class="form-label">Stream</label>
+        <select id="f-stream" class="form-control">${['','PCM','PCB','PCMB','COMMERCE','ARTS','GENERAL'].map(v=>`<option ${ac.stream===v?'selected':''} value="${v}">${v||'Select'}</option>`).join('')}</select></div>
+      <div class="form-group"><label class="form-label">Previous School</label><input id="f-prevSchool" class="form-control" value="${ac.previousSchool||''}"/></div>
+      <div class="form-group"><label class="form-label">Previous %</label><input id="f-prevPct" class="form-control" type="number" min="0" max="100" value="${ac.previousPercentage||''}"/></div>
+    </div>
+  </div>
+
+  <!-- SUBJECTS -->
+  <div id="f-subjects" class="tab-pane card" style="display:none">
+    <div class="form-section-title">Subjects</div>
+    <div id="selected-subjects" class="chips" style="margin-bottom:16px">
+      ${subs.map(s=>`<div class="chip" data-code="${s.subjectCode}" data-name="${s.subjectName}">📚 ${s.subjectName} <span class="chip-remove" onclick="removeSubject(this)">✕</span></div>`).join('')}
+    </div>
+    <select id="subject-picker" class="form-control" style="max-width:300px;display:inline-block;margin-right:8px">
+      <option value="">Select a subject to add</option>
+      ${subjectList.map(s=>`<option value="${s.subjectCode}" data-name="${s.subjectName}">${s.subjectName} [${s.subjectCode||''}]</option>`).join('')}
+    </select>
+    <button class="btn btn-secondary" onclick="addSubjectFromPicker()">+ Add</button>
+    <hr style="border-color:var(--border);margin:16px 0"/>
+    <div class="form-group"><label class="form-label">Or add new subject</label>
+      <div style="display:flex;gap:8px">
+        <input id="new-sub-name" class="form-control" placeholder="Subject Name"/>
+        <input id="new-sub-code" class="form-control" placeholder="Code" style="max-width:100px"/>
+        <button class="btn btn-secondary" onclick="addNewSubject()">+ Add</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BANK -->
+  <div id="f-bank" class="tab-pane card" style="display:none">
+    <div class="form-section-title">Bank Details</div>
+    <div class="form-grid">
+      <div class="form-group"><label class="form-label">Bank Name</label><input id="f-bankName" class="form-control" value="${bk.bankName||''}"/></div>
+      <div class="form-group"><label class="form-label">Branch</label><input id="f-branch" class="form-control" value="${bk.branchName||''}"/></div>
+      <div class="form-group"><label class="form-label">IFSC Code</label><input id="f-ifsc" class="form-control" value="${bk.ifscCode||''}" placeholder="SBIN0001234"/></div>
+      <div class="form-group"><label class="form-label">Account Number</label><input id="f-accNo" class="form-control" value="${bk.accountNumber||''}"/></div>
+      <div class="form-group"><label class="form-label">Account Holder</label><input id="f-accHolder" class="form-control" value="${bk.accountHolderName||''}"/></div>
+    </div>
+  </div>
+
+  <!-- DOCUMENTS -->
+  <div id="f-documents" class="tab-pane card" style="display:none">
+    <div class="form-section-title">Documents (uploaded after registration)</div>
+    <p style="color:var(--text-muted);font-size:13px;margin-bottom:16px">Register the student first, then upload documents from the student detail page.</p>
+    ${isEdit?`<button class="btn btn-info" onclick="navigate('student-detail',currentStudentId)">📁 Manage Documents</button>`:''}
+  </div>
+
+  <div style="display:flex;gap:12px;margin-top:24px;justify-content:flex-end">
+    <button class="btn btn-secondary" onclick="navigate(${isEdit?`'student-detail',currentStudentId`:"'students'"})">Cancel</button>
+    <button class="btn btn-primary" onclick="${isEdit?'submitUpdate()':'submitRegister()'}">
+      ${isEdit?'💾 Save Changes':'✅ Register Student'}
+    </button>
+  </div>
+</div>`; }
+};

@@ -1,71 +1,275 @@
 package com.smartstudent.main.service.impl;
 
-import java.util.List;
-
-import org.springframework.stereotype.Service;
-
-import com.smartstudent.main.dto.StudentRequestDTO;
-import com.smartstudent.main.entity.Student;
-import com.smartstudent.main.repository.StudentRepository;
+import com.smartstudent.main.dto.request.*;
+import com.smartstudent.main.dto.response.*;
+import com.smartstudent.main.entity.*;
+import com.smartstudent.main.enums.Stream;
+import com.smartstudent.main.exception.DuplicateResourceException;
+import com.smartstudent.main.exception.ResourceNotFoundException;
+import com.smartstudent.main.mapper.*;
+import com.smartstudent.main.repository.*;
 import com.smartstudent.main.service.StudentService;
-
+import com.smartstudent.main.util.FileStorageUtil;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.*;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
+@Transactional
 public class StudentServiceImpl implements StudentService {
 
     private final StudentRepository studentRepository;
+    private final AcademicDetailsRepository academicDetailsRepository;
+    private final SubjectRepository subjectRepository;
+    private final StudentDocumentRepository documentRepository;
+    private final BankDetailsRepository bankDetailsRepository;
 
+    private final StudentMapper studentMapper;
+    private final AcademicDetailsMapper academicDetailsMapper;
+    private final DocumentMapper documentMapper;
+    private final BankDetailsMapper bankDetailsMapper;
+    private final SubjectMapper subjectMapper;
+
+    private final FileStorageUtil fileStorageUtil;
+
+    // ==========================================
+    // REGISTER STUDENT (Master Registration)
+    // ==========================================
     @Override
-    public Student createStudent(StudentRequestDTO dto) {
+    public StudentResponseDTO registerStudent(StudentRegistrationRequestDTO request,
+                                             List<MultipartFile> files) {
+        log.info("Registering student with Samagra ID: {}", request.getPersonalInfo().getSamagraId());
 
-        Student student = Student.builder()
-                .samagraId(dto.getSamagraId())
-                .fullName(dto.getFullName())
-                .gender(dto.getGender())
-                .fatherName(dto.getFatherName())
-                .motherName(dto.getMotherName())
-                .mobileNumber(dto.getMobileNumber())
-                .address(dto.getAddress())
+        if (studentRepository.existsBySamagraId(request.getPersonalInfo().getSamagraId())) {
+            throw new DuplicateResourceException(
+                    "Student already exists with Samagra ID: " + request.getPersonalInfo().getSamagraId());
+        }
+
+        // Map & save student
+        Student student = studentMapper.toEntity(request.getPersonalInfo());
+        student = studentRepository.save(student);
+
+        // Academic details
+        if (request.getAcademicInfo() != null) {
+            AcademicDetails academicDetails = academicDetailsMapper.toEntity(request.getAcademicInfo());
+            academicDetails.setStudent(student);
+            academicDetailsRepository.save(academicDetails);
+        }
+
+        // Bank details
+        if (request.getBankDetails() != null) {
+            BankDetails bankDetails = bankDetailsMapper.toEntity(request.getBankDetails());
+            bankDetails.setStudent(student);
+            bankDetailsRepository.save(bankDetails);
+        }
+
+        // Subjects
+        if (!CollectionUtils.isEmpty(request.getSubjects())) {
+            List<Subject> subjects = resolveSubjects(request.getSubjects());
+            student.setSubjects(subjects);
+            studentRepository.save(student);
+        }
+
+        // Document metadata (without files)
+        if (!CollectionUtils.isEmpty(request.getDocuments())) {
+            List<StudentDocument> docs = new ArrayList<>();
+            for (int i = 0; i < request.getDocuments().size(); i++) {
+                DocumentDTO docDto = request.getDocuments().get(i);
+                StudentDocument doc = documentMapper.toEntity(docDto);
+                doc.setStudent(student);
+
+                // Attach uploaded file if available
+                if (files != null && i < files.size() && !files.get(i).isEmpty()) {
+                    MultipartFile file = files.get(i);
+                    String filePath = fileStorageUtil.storeFile(
+                            file, student.getId(), docDto.getDocumentType().name());
+                    doc.setFileName(file.getOriginalFilename());
+                    doc.setFilePath(filePath);
+                }
+                docs.add(doc);
+            }
+            documentRepository.saveAll(docs);
+        }
+
+        log.info("Student registered successfully with ID: {}", student.getId());
+        return studentMapper.toResponseDTO(student);
+    }
+
+    // ==========================================
+    // GET STUDENT BY ID
+    // ==========================================
+    @Override
+    @Transactional(readOnly = true)
+    public StudentResponseDTO getStudentById(Long id) {
+        Student student = findStudentById(id);
+        return studentMapper.toResponseDTO(student);
+    }
+
+    // ==========================================
+    // GET FULL DETAILS
+    // ==========================================
+    @Override
+    @Transactional(readOnly = true)
+    public StudentFullDetailsResponseDTO getFullStudentDetails(Long id) {
+        Student student = findStudentById(id);
+
+        AcademicDetails academic = academicDetailsRepository.findByStudentId(id).orElse(null);
+        BankDetails bank = bankDetailsRepository.findByStudentId(id).orElse(null);
+        List<StudentDocument> docs = documentRepository.findByStudentId(id);
+
+        List<SubjectResponseDTO> subjectDTOs = student.getSubjects().stream()
+                .map(subjectMapper::toResponseDTO)
+                .collect(Collectors.toList());
+
+        List<DocumentResponseDTO> docDTOs = docs.stream()
+                .map(documentMapper::toResponseDTO)
+                .collect(Collectors.toList());
+
+        return StudentFullDetailsResponseDTO.builder()
+                .personalInfo(studentMapper.toResponseDTO(student))
+                .academicDetails(academicDetailsMapper.toResponseDTO(academic))
+                .subjects(subjectDTOs)
+                .documents(docDTOs)
+                .bankDetails(bankDetailsMapper.toResponseDTO(bank))
                 .build();
-
-        return studentRepository.save(student);
     }
 
+    // ==========================================
+    // UPDATE STUDENT
+    // ==========================================
     @Override
-    public List<Student> getAllStudents() {
-        return studentRepository.findAll();
+    public StudentResponseDTO updateStudent(Long id, StudentUpdateRequestDTO request,
+                                           List<MultipartFile> files) {
+        log.info("Updating student with ID: {}", id);
+        Student student = findStudentById(id);
+
+        // Update personal info
+        if (request.getPersonalInfo() != null) {
+            studentMapper.updateEntityFromDTO(request.getPersonalInfo(), student);
+            student = studentRepository.save(student);
+        }
+
+        // Update academic details
+        if (request.getAcademicInfo() != null) {
+            AcademicDetails academic = academicDetailsRepository.findByStudentId(id)
+                    .orElse(new AcademicDetails());
+            academic.setStudent(student);
+            academicDetailsMapper.updateFromDTO(request.getAcademicInfo(), academic);
+            academicDetailsRepository.save(academic);
+        }
+
+        // Update bank details
+        if (request.getBankDetails() != null) {
+            BankDetails bank = bankDetailsRepository.findByStudentId(id)
+                    .orElse(new BankDetails());
+            bank.setStudent(student);
+            bankDetailsMapper.updateFromDTO(request.getBankDetails(), bank);
+            bankDetailsRepository.save(bank);
+        }
+
+        // Update subjects (replace all)
+        if (!CollectionUtils.isEmpty(request.getSubjects())) {
+            List<Subject> subjects = resolveSubjects(request.getSubjects());
+            student.setSubjects(subjects);
+            student = studentRepository.save(student);
+        }
+
+        // Update documents (new ones only)
+        if (!CollectionUtils.isEmpty(request.getDocuments())) {
+            for (int i = 0; i < request.getDocuments().size(); i++) {
+                DocumentDTO docDto = request.getDocuments().get(i);
+                StudentDocument doc = documentMapper.toEntity(docDto);
+                doc.setStudent(student);
+                if (files != null && i < files.size() && !files.get(i).isEmpty()) {
+                    MultipartFile file = files.get(i);
+                    String filePath = fileStorageUtil.storeFile(
+                            file, student.getId(), docDto.getDocumentType().name());
+                    doc.setFileName(file.getOriginalFilename());
+                    doc.setFilePath(filePath);
+                }
+                documentRepository.save(doc);
+            }
+        }
+
+        log.info("Student updated successfully: {}", id);
+        return studentMapper.toResponseDTO(student);
     }
 
-    @Override
-    public Student getStudentById(Long id) {
-
-        return studentRepository.findById(id)
-                .orElseThrow(() ->
-                        new RuntimeException("Student not found"));
-    }
-
-    @Override
-    public Student updateStudent(Long id, StudentRequestDTO dto) {
-
-        Student student = getStudentById(id);
-
-        student.setFullName(dto.getFullName());
-        student.setGender(dto.getGender());
-        student.setFatherName(dto.getFatherName());
-        student.setMotherName(dto.getMotherName());
-        student.setMobileNumber(dto.getMobileNumber());
-        student.setAddress(dto.getAddress());
-
-        return studentRepository.save(student);
-    }
-
+    // ==========================================
+    // DELETE STUDENT
+    // ==========================================
     @Override
     public void deleteStudent(Long id) {
+        log.info("Deleting student with ID: {}", id);
+        Student student = findStudentById(id);
 
-        Student student = getStudentById(id);
+        // Delete physical files
+        List<StudentDocument> docs = documentRepository.findByStudentId(id);
+        docs.forEach(doc -> fileStorageUtil.deleteFile(doc.getFilePath()));
 
         studentRepository.delete(student);
+        log.info("Student deleted: {}", id);
+    }
+
+    // ==========================================
+    // SEARCH STUDENTS
+    // ==========================================
+    @Override
+    @Transactional(readOnly = true)
+    public PagedResponseDTO<StudentResponseDTO> searchStudents(
+            String name, String samagraId, String className,
+            String rollNumber, String admissionNumber, Stream stream,
+            int page, int size, String sortBy, String sortDir) {
+
+        Sort sort = sortDir.equalsIgnoreCase("asc")
+                ? Sort.by(sortBy).ascending()
+                : Sort.by(sortBy).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<Student> studentPage = studentRepository.searchStudents(
+                name, samagraId, className, rollNumber, admissionNumber, stream, pageable);
+
+        List<StudentResponseDTO> content = studentPage.getContent()
+                .stream()
+                .map(studentMapper::toResponseDTO)
+                .collect(Collectors.toList());
+
+        return PagedResponseDTO.<StudentResponseDTO>builder()
+                .content(content)
+                .pageNumber(studentPage.getNumber())
+                .pageSize(studentPage.getSize())
+                .totalElements(studentPage.getTotalElements())
+                .totalPages(studentPage.getTotalPages())
+                .last(studentPage.isLast())
+                .build();
+    }
+
+    // ==========================================
+    // HELPERS
+    // ==========================================
+    private Student findStudentById(Long id) {
+        return studentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "id", id));
+    }
+
+    private List<Subject> resolveSubjects(List<SubjectDTO> subjectDTOs) {
+        return subjectDTOs.stream().map(dto -> {
+            if (dto.getSubjectCode() != null) {
+                return subjectRepository.findBySubjectCode(dto.getSubjectCode())
+                        .orElseGet(() -> subjectRepository.save(subjectMapper.toEntity(dto)));
+            }
+            return subjectRepository.findBySubjectName(dto.getSubjectName())
+                    .orElseGet(() -> subjectRepository.save(subjectMapper.toEntity(dto)));
+        }).collect(Collectors.toList());
     }
 }
