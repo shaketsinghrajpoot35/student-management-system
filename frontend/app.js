@@ -76,7 +76,8 @@ function showSidebar() {
   const name = localStorage.getItem('adminName');
   if (name) document.getElementById('admin-name').textContent = name;
   const schoolName = localStorage.getItem('schoolName');
-  if (schoolName) document.getElementById('school-name-header').textContent = schoolName;
+  const schoolEl = document.getElementById('school-name-header');
+  if (schoolName && schoolEl) schoolEl.textContent = schoolName;
 }
 
 function hideSidebar() {
