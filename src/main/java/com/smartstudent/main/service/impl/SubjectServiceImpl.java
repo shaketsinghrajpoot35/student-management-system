@@ -34,12 +34,15 @@ public class SubjectServiceImpl implements SubjectService {
     @Override
     public SubjectResponseDTO createSubject(SubjectDTO dto) {
         Admin admin = securityUtil.getCurrentAdmin();
-        if (dto.getSubjectCode() != null &&
-                subjectRepository.existsBySubjectCodeAndAdmin(dto.getSubjectCode(), admin)) {
+        String code = (dto.getSubjectCode() != null && !dto.getSubjectCode().isBlank())
+                ? dto.getSubjectCode() : null;
+
+        if (code != null && subjectRepository.existsBySubjectCodeAndAdmin(code, admin)) {
             throw new DuplicateResourceException(
-                    "Subject already exists with code: " + dto.getSubjectCode());
+                    "Subject already exists with code: " + code);
         }
         Subject subject = subjectMapper.toEntity(dto);
+        subject.setSubjectCode(code);
         subject.setAdmin(admin);
         return subjectMapper.toResponseDTO(subjectRepository.save(subject));
     }
@@ -60,10 +63,14 @@ public class SubjectServiceImpl implements SubjectService {
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "id", studentId));
 
         List<Subject> subjects = subjectDTOs.stream().map(dto -> {
-            if (dto.getSubjectCode() != null) {
-                return subjectRepository.findBySubjectCodeAndAdmin(dto.getSubjectCode(), admin)
+            String code = (dto.getSubjectCode() != null && !dto.getSubjectCode().isBlank())
+                    ? dto.getSubjectCode() : null;
+
+            if (code != null) {
+                return subjectRepository.findBySubjectCodeAndAdmin(code, admin)
                         .orElseGet(() -> {
                             Subject s = subjectMapper.toEntity(dto);
+                            s.setSubjectCode(code);
                             s.setAdmin(admin);
                             return subjectRepository.save(s);
                         });
@@ -71,6 +78,7 @@ public class SubjectServiceImpl implements SubjectService {
             return subjectRepository.findBySubjectNameAndAdmin(dto.getSubjectName(), admin)
                     .orElseGet(() -> {
                             Subject s = subjectMapper.toEntity(dto);
+                            s.setSubjectCode(null);
                             s.setAdmin(admin);
                             return subjectRepository.save(s);
                     });

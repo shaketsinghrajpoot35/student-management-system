@@ -140,6 +140,7 @@ public class StudentServiceImpl implements StudentService {
                 .collect(Collectors.toList());
 
         return StudentFullDetailsResponseDTO.builder()
+                .id(id)
                 .personalInfo(studentMapper.toResponseDTO(student))
                 .academicDetails(academicDetailsMapper.toResponseDTO(academic))
                 .subjects(subjectDTOs)
@@ -271,10 +272,14 @@ public class StudentServiceImpl implements StudentService {
 
     private List<Subject> resolveSubjects(List<SubjectDTO> subjectDTOs, Admin admin) {
         return subjectDTOs.stream().map(dto -> {
-            if (dto.getSubjectCode() != null) {
-                return subjectRepository.findBySubjectCodeAndAdmin(dto.getSubjectCode(), admin)
+            String code = (dto.getSubjectCode() != null && !dto.getSubjectCode().isBlank())
+                    ? dto.getSubjectCode() : null;
+            
+            if (code != null) {
+                return subjectRepository.findBySubjectCodeAndAdmin(code, admin)
                         .orElseGet(() -> {
                             Subject s = subjectMapper.toEntity(dto);
+                            s.setSubjectCode(code); // Ensure normalized
                             s.setAdmin(admin);
                             return subjectRepository.save(s);
                         });
@@ -282,6 +287,7 @@ public class StudentServiceImpl implements StudentService {
             return subjectRepository.findBySubjectNameAndAdmin(dto.getSubjectName(), admin)
                     .orElseGet(() -> {
                             Subject s = subjectMapper.toEntity(dto);
+                            s.setSubjectCode(null); // Ensure null, not empty string
                             s.setAdmin(admin);
                             return subjectRepository.save(s);
                     });

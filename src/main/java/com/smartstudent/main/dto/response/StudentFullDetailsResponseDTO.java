@@ -12,6 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class StudentFullDetailsResponseDTO {
+    private Long id;
     private StudentResponseDTO personalInfo;
     private AcademicDetailsResponseDTO academicDetails;
     private List<SubjectResponseDTO> subjects;

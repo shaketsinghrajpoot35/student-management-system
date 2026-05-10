@@ -57,6 +57,11 @@ public class StudentDocumentServiceImpl implements StudentDocumentService {
     @Override
     @Transactional(readOnly = true)
     public List<DocumentResponseDTO> getDocumentsByStudentId(Long studentId) {
+        Admin admin = securityUtil.getCurrentAdmin();
+        // Verify student belongs to admin
+        studentRepository.findByIdAndAdmin(studentId, admin)
+                .orElseThrow(() -> new ResourceNotFoundException("Student", "id", studentId));
+
         return documentRepository.findByStudentId(studentId).stream()
                 .map(documentMapper::toResponseDTO)
                 .collect(Collectors.toList());
