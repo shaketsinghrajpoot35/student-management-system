@@ -23,10 +23,10 @@ public class AcademicDetails {
     @Column(length = 5)
     private String section;
 
-    @Column(unique = true, length = 20)
+    @Column(length = 20)
     private String rollNumber;
 
-    @Column(unique = true, length = 30)
+    @Column(length = 30)
     private String admissionNumber;
 
     @Column(length = 50)
