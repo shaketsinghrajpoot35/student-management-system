@@ -28,6 +28,9 @@ public class Admin {
     @Column(nullable = false, length = 100)
     private String fullName;
 
+    @Column(name = "school_name", length = 150)
+    private String schoolName;
+
     @Column(nullable = false, length = 20)
     @Builder.Default
     private String role = "ROLE_ADMIN";

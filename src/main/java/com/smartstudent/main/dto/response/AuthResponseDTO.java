@@ -14,6 +14,7 @@ public class AuthResponseDTO {
     private String tokenType;
     private String username;
     private String fullName;
+    private String schoolName;
     private String role;
     private Long expiresIn;
 }

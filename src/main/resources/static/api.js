@@ -38,6 +38,7 @@ const api = {
 
   // AUTH
   login: (u, p) => api.post('/api/auth/login', { username: u, password: p }),
+  register: (email, password, schoolName) => api.post('/api/auth/register', { email, password, schoolName }),
 
   // STUDENTS
   getStudents: (params = '') => api.get(`/api/students?${params}`),

@@ -12,7 +12,11 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+
+import com.smartstudent.main.dto.request.RegisterRequestDTO;
+import com.smartstudent.main.exception.ResourceNotFoundException;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +26,7 @@ public class AuthServiceImpl implements AuthService {
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
     private final AdminRepository adminRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Value("${jwt.expiration}")
     private Long jwtExpiration;
@@ -36,8 +41,8 @@ public class AuthServiceImpl implements AuthService {
 
         String token = jwtUtil.generateToken(authentication.getName());
 
-        Admin admin = adminRepository.findByUsername(request.getUsername())
-                .orElseThrow();
+        Admin admin = adminRepository.findByUsernameOrEmail(request.getUsername(), request.getUsername())
+                .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
 
         log.info("Login successful for user: {}", request.getUsername());
 
@@ -46,8 +51,29 @@ public class AuthServiceImpl implements AuthService {
                 .tokenType("Bearer")
                 .username(admin.getUsername())
                 .fullName(admin.getFullName())
+                .schoolName(admin.getSchoolName())
                 .role(admin.getRole())
                 .expiresIn(jwtExpiration)
                 .build();
+    }
+
+    @Override
+    public void registerAdmin(RegisterRequestDTO request) {
+        log.info("Registering new admin with email: {}", request.getEmail());
+        if (adminRepository.existsByEmail(request.getEmail())) {
+            throw new IllegalArgumentException("Email is already registered");
+        }
+        
+        Admin newAdmin = Admin.builder()
+                .username(request.getEmail())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .fullName("Administrator")
+                .schoolName(request.getSchoolName())
+                .role("ROLE_ADMIN")
+                .build();
+        
+        adminRepository.save(newAdmin);
+        log.info("Admin registered successfully: {}", request.getEmail());
     }
 }

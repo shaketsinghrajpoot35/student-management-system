@@ -28,4 +28,15 @@ public class AuthController {
         AuthResponseDTO response = authService.login(request);
         return ResponseEntity.ok(ApiResponseDTO.success("Login successful", response));
     }
+
+    /**
+     * POST /api/auth/register
+     */
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponseDTO<Void>> register(
+            @Valid @RequestBody com.smartstudent.main.dto.request.RegisterRequestDTO request) {
+        log.info("Register request received for email: {}", request.getEmail());
+        authService.registerAdmin(request);
+        return ResponseEntity.ok(ApiResponseDTO.success("Admin registered successfully", null));
+    }
 }

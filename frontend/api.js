@@ -38,6 +38,7 @@ const api = {
 
   // AUTH
   login: (u, p) => api.post('/api/auth/login', { username: u, password: p }),
+  register: (email, password, schoolName) => api.post('/api/auth/register', { email, password, schoolName }),
 
   // STUDENTS
   getStudents: (params = '') => api.get(`/api/students?${params}`),
@@ -54,6 +55,8 @@ const api = {
   // SUBJECTS
   getAllSubjects: () => api.get('/api/subjects'),
   createSubject: (body) => api.post('/api/subjects', body),
+  updateSubject: (id, body) => api.put(`/api/subjects/${id}`, body),
+  deleteSubject: (id) => api.del(`/api/subjects/${id}`),
   assignSubjects: (studentId, body) => api.post(`/api/students/${studentId}/subjects`, body),
 
   // DOCUMENTS
@@ -64,6 +67,15 @@ const api = {
     const opts = { method: 'POST', headers: { Authorization: `Bearer ${t}` }, body: fd };
     return fetch(`${BASE_URL}/api/documents/upload?studentId=${studentId}`, opts)
       .then(r => r.json());
+  },
+  updateDocument: (id, fd) => {
+    const t = api.getToken();
+    const opts = { method: 'PUT', headers: { Authorization: `Bearer ${t}` }, body: fd };
+    return fetch(`${BASE_URL}/api/documents/${id}`, opts)
+      .then(async r => {
+        const text = await r.text();
+        return text ? JSON.parse(text) : {};
+      });
   },
   downloadUrl: (id) => `${BASE_URL}/api/documents/download/${id}`,
 

@@ -12,16 +12,48 @@ const Pages = {
     </div>
     <div id="login-error" class="login-error"></div>
     <div class="form-group">
-      <label class="form-label">Username</label>
-      <input id="username" class="form-control" placeholder="admin" type="text" autocomplete="username"/>
+      <label class="form-label">Email or Username</label>
+      <input id="username" class="form-control" placeholder="admin@school.edu or admin" type="text" autocomplete="username"/>
     </div>
     <div class="form-group">
       <label class="form-label">Password</label>
       <input id="password" class="form-control" placeholder="••••••••" type="password" autocomplete="current-password"/>
     </div>
     <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doLogin()">Login to Portal</button>
+    <div style="margin-top:16px;text-align:center;font-size:14px;color:var(--text-muted)">
+      Don't have an account? <a href="#" onclick="navigate('signup')" style="color:var(--primary);text-decoration:none;font-weight:500">Sign Up</a>
+    </div>
   </div>
 </div>`,
+
+  signup: () => `
+<div class="login-page">
+  <div class="login-card fade-in">
+    <div class="login-logo">
+      <span class="icon">🎓</span>
+      <h1>SmartStudent</h1>
+      <p>Admin Registration</p>
+    </div>
+    <div id="signup-error" class="login-error"></div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input id="su-email" class="form-control" placeholder="admin@school.edu" type="email"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Password</label>
+      <input id="su-password" class="form-control" placeholder="••••••••" type="password"/>
+    </div>
+    <div class="form-group">
+      <label class="form-label">School Name</label>
+      <input id="su-school" class="form-control" placeholder="e.g. Springfield High School" type="text"/>
+    </div>
+    <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doSignup()">Create Account</button>
+    <div style="margin-top:16px;text-align:center;font-size:14px;color:var(--text-muted)">
+      Already have an account? <a href="#" onclick="navigate('login')" style="color:var(--primary);text-decoration:none;font-weight:500">Login</a>
+    </div>
+  </div>
+</div>`,
+
 
   dashboard: (stats) => `
 <div class="fade-in">

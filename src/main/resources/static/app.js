@@ -36,6 +36,7 @@ function navigate(page, id = null) {
     case 'edit': renderEditForm(id); break;
     case 'student-detail': renderStudentDetail(id); break;
     case 'subjects': renderSubjects(); break;
+    case 'signup': renderSignup(); break;
     default: navigate('dashboard');
   }
 }
@@ -51,8 +52,8 @@ async function doLogin() {
     const res = await api.login(u, p);
     localStorage.setItem('token', res.data.token);
     localStorage.setItem('adminName', res.data.fullName || res.data.username);
+    localStorage.setItem('schoolName', res.data.schoolName || '');
     showSidebar();
-    document.getElementById('admin-name').textContent = res.data.fullName || res.data.username;
     navigate('dashboard');
   } catch (e) { showErr(errEl, e.message || 'Login failed'); }
 }
@@ -74,6 +75,8 @@ function showSidebar() {
   document.getElementById('main-content').classList.remove('full-width');
   const name = localStorage.getItem('adminName');
   if (name) document.getElementById('admin-name').textContent = name;
+  const schoolName = localStorage.getItem('schoolName');
+  if (schoolName) document.getElementById('school-name-header').textContent = schoolName;
 }
 
 function hideSidebar() {
@@ -81,10 +84,31 @@ function hideSidebar() {
   document.getElementById('main-content').classList.add('full-width');
 }
 
-// ============ LOGIN ============
+// ============ LOGIN & SIGNUP ============
 function renderLogin() {
   hideSidebar();
   document.getElementById('page-container').innerHTML = Pages.login();
+}
+
+function renderSignup() {
+  hideSidebar();
+  document.getElementById('page-container').innerHTML = Pages.signup();
+}
+
+async function doSignup() {
+  const e = document.getElementById('su-email').value.trim();
+  const p = document.getElementById('su-password').value.trim();
+  const s = document.getElementById('su-school').value.trim();
+  const errEl = document.getElementById('signup-error');
+  errEl.style.display = 'none';
+  if (!e || !p || !s) { showErr(errEl, 'Please fill all fields'); return; }
+  try {
+    await api.register(e, p, s);
+    toast('Registration successful! Please login.', 'success');
+    navigate('login');
+  } catch (err) {
+    showErr(errEl, err.message || 'Registration failed');
+  }
 }
 
 // ============ DASHBOARD ============
