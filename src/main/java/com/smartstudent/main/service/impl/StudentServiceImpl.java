@@ -10,6 +10,7 @@ import com.smartstudent.main.mapper.*;
 import com.smartstudent.main.repository.*;
 import com.smartstudent.main.service.StudentService;
 import com.smartstudent.main.util.FileStorageUtil;
+import com.smartstudent.main.util.SecurityUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
@@ -41,6 +42,7 @@ public class StudentServiceImpl implements StudentService {
     private final SubjectMapper subjectMapper;
 
     private final FileStorageUtil fileStorageUtil;
+    private final SecurityUtil securityUtil;
 
     // ==========================================
     // REGISTER STUDENT (Master Registration)
@@ -48,15 +50,17 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public StudentResponseDTO registerStudent(StudentRegistrationRequestDTO request,
                                              List<MultipartFile> files) {
-        log.info("Registering student with Samagra ID: {}", request.getPersonalInfo().getSamagraId());
+        Admin admin = securityUtil.getCurrentAdmin();
+        log.info("Registering student with Samagra ID: {} for admin: {}", request.getPersonalInfo().getSamagraId(), admin.getUsername());
 
-        if (studentRepository.existsBySamagraId(request.getPersonalInfo().getSamagraId())) {
+        if (studentRepository.existsBySamagraIdAndAdmin(request.getPersonalInfo().getSamagraId(), admin)) {
             throw new DuplicateResourceException(
                     "Student already exists with Samagra ID: " + request.getPersonalInfo().getSamagraId());
         }
 
         // Map & save student
         Student student = studentMapper.toEntity(request.getPersonalInfo());
+        student.setAdmin(admin);
         student = studentRepository.save(student);
 
         // Academic details
@@ -75,7 +79,7 @@ public class StudentServiceImpl implements StudentService {
 
         // Subjects
         if (!CollectionUtils.isEmpty(request.getSubjects())) {
-            List<Subject> subjects = resolveSubjects(request.getSubjects());
+            List<Subject> subjects = resolveSubjects(request.getSubjects(), admin);
             student.setSubjects(subjects);
             studentRepository.save(student);
         }
@@ -179,7 +183,8 @@ public class StudentServiceImpl implements StudentService {
 
         // Update subjects (replace all)
         if (!CollectionUtils.isEmpty(request.getSubjects())) {
-            List<Subject> subjects = resolveSubjects(request.getSubjects());
+            Admin admin = securityUtil.getCurrentAdmin();
+            List<Subject> subjects = resolveSubjects(request.getSubjects(), admin);
             student.setSubjects(subjects);
             student = studentRepository.save(student);
         }
@@ -231,13 +236,14 @@ public class StudentServiceImpl implements StudentService {
             String rollNumber, String admissionNumber, Stream stream,
             int page, int size, String sortBy, String sortDir) {
 
+        Admin admin = securityUtil.getCurrentAdmin();
         Sort sort = sortDir.equalsIgnoreCase("asc")
                 ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
         Page<Student> studentPage = studentRepository.searchStudents(
-                name, samagraId, className, rollNumber, admissionNumber, stream, pageable);
+                admin, name, samagraId, className, rollNumber, admissionNumber, stream, pageable);
 
         List<StudentResponseDTO> content = studentPage.getContent()
                 .stream()
@@ -258,18 +264,27 @@ public class StudentServiceImpl implements StudentService {
     // HELPERS
     // ==========================================
     private Student findStudentById(Long id) {
-        return studentRepository.findById(id)
+        Admin admin = securityUtil.getCurrentAdmin();
+        return studentRepository.findByIdAndAdmin(id, admin)
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "id", id));
     }
 
-    private List<Subject> resolveSubjects(List<SubjectDTO> subjectDTOs) {
+    private List<Subject> resolveSubjects(List<SubjectDTO> subjectDTOs, Admin admin) {
         return subjectDTOs.stream().map(dto -> {
             if (dto.getSubjectCode() != null) {
-                return subjectRepository.findBySubjectCode(dto.getSubjectCode())
-                        .orElseGet(() -> subjectRepository.save(subjectMapper.toEntity(dto)));
+                return subjectRepository.findBySubjectCodeAndAdmin(dto.getSubjectCode(), admin)
+                        .orElseGet(() -> {
+                            Subject s = subjectMapper.toEntity(dto);
+                            s.setAdmin(admin);
+                            return subjectRepository.save(s);
+                        });
             }
-            return subjectRepository.findBySubjectName(dto.getSubjectName())
-                    .orElseGet(() -> subjectRepository.save(subjectMapper.toEntity(dto)));
+            return subjectRepository.findBySubjectNameAndAdmin(dto.getSubjectName(), admin)
+                    .orElseGet(() -> {
+                            Subject s = subjectMapper.toEntity(dto);
+                            s.setAdmin(admin);
+                            return subjectRepository.save(s);
+                    });
         }).collect(Collectors.toList());
     }
 }

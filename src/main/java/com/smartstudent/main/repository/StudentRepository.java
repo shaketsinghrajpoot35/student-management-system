@@ -14,14 +14,17 @@ import java.util.Optional;
 @Repository
 public interface StudentRepository extends JpaRepository<Student, Long> {
 
-    Optional<Student> findBySamagraId(String samagraId);
+    Optional<Student> findBySamagraIdAndAdmin(String samagraId, com.smartstudent.main.entity.Admin admin);
 
-    boolean existsBySamagraId(String samagraId);
+    boolean existsBySamagraIdAndAdmin(String samagraId, com.smartstudent.main.entity.Admin admin);
+
+    Optional<Student> findByIdAndAdmin(Long id, com.smartstudent.main.entity.Admin admin);
 
     @Query("""
             SELECT s FROM Student s
             LEFT JOIN s.academicDetails ad
-            WHERE (:name IS NULL OR LOWER(s.fullName) LIKE LOWER(CONCAT('%', :name, '%')))
+            WHERE s.admin = :admin
+              AND (:name IS NULL OR LOWER(s.fullName) LIKE LOWER(CONCAT('%', :name, '%')))
               AND (:samagraId IS NULL OR s.samagraId = :samagraId)
               AND (:className IS NULL OR ad.className = :className)
               AND (:rollNumber IS NULL OR ad.rollNumber = :rollNumber)
@@ -29,6 +32,7 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
               AND (:stream IS NULL OR ad.stream = :stream)
             """)
     Page<Student> searchStudents(
+            @Param("admin") com.smartstudent.main.entity.Admin admin,
             @Param("name") String name,
             @Param("samagraId") String samagraId,
             @Param("className") String className,

@@ -95,6 +95,10 @@ public class Student {
     // RELATIONSHIPS
     // ==========================================
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "admin_id", nullable = true) // Nullable initially for existing data migration
+    private Admin admin;
+
     @OneToOne(mappedBy = "student", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private AcademicDetails academicDetails;
 

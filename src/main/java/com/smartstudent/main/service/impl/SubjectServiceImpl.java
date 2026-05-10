@@ -10,6 +10,8 @@ import com.smartstudent.main.mapper.SubjectMapper;
 import com.smartstudent.main.repository.StudentRepository;
 import com.smartstudent.main.repository.SubjectRepository;
 import com.smartstudent.main.service.SubjectService;
+import com.smartstudent.main.util.SecurityUtil;
+import com.smartstudent.main.entity.Admin;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -27,38 +29,51 @@ public class SubjectServiceImpl implements SubjectService {
     private final SubjectRepository subjectRepository;
     private final StudentRepository studentRepository;
     private final SubjectMapper subjectMapper;
+    private final SecurityUtil securityUtil;
 
     @Override
     public SubjectResponseDTO createSubject(SubjectDTO dto) {
+        Admin admin = securityUtil.getCurrentAdmin();
         if (dto.getSubjectCode() != null &&
-                subjectRepository.existsBySubjectCode(dto.getSubjectCode())) {
+                subjectRepository.existsBySubjectCodeAndAdmin(dto.getSubjectCode(), admin)) {
             throw new DuplicateResourceException(
                     "Subject already exists with code: " + dto.getSubjectCode());
         }
         Subject subject = subjectMapper.toEntity(dto);
+        subject.setAdmin(admin);
         return subjectMapper.toResponseDTO(subjectRepository.save(subject));
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<SubjectResponseDTO> getAllSubjects() {
-        return subjectRepository.findAll().stream()
+        Admin admin = securityUtil.getCurrentAdmin();
+        return subjectRepository.findAllByAdmin(admin).stream()
                 .map(subjectMapper::toResponseDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<SubjectResponseDTO> assignSubjectsToStudent(Long studentId, List<SubjectDTO> subjectDTOs) {
-        Student student = studentRepository.findById(studentId)
+        Admin admin = securityUtil.getCurrentAdmin();
+        Student student = studentRepository.findByIdAndAdmin(studentId, admin)
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "id", studentId));
 
         List<Subject> subjects = subjectDTOs.stream().map(dto -> {
             if (dto.getSubjectCode() != null) {
-                return subjectRepository.findBySubjectCode(dto.getSubjectCode())
-                        .orElseGet(() -> subjectRepository.save(subjectMapper.toEntity(dto)));
+                return subjectRepository.findBySubjectCodeAndAdmin(dto.getSubjectCode(), admin)
+                        .orElseGet(() -> {
+                            Subject s = subjectMapper.toEntity(dto);
+                            s.setAdmin(admin);
+                            return subjectRepository.save(s);
+                        });
             }
-            return subjectRepository.findBySubjectName(dto.getSubjectName())
-                    .orElseGet(() -> subjectRepository.save(subjectMapper.toEntity(dto)));
+            return subjectRepository.findBySubjectNameAndAdmin(dto.getSubjectName(), admin)
+                    .orElseGet(() -> {
+                            Subject s = subjectMapper.toEntity(dto);
+                            s.setAdmin(admin);
+                            return subjectRepository.save(s);
+                    });
         }).collect(Collectors.toList());
 
         // Merge (add new, keep existing)
@@ -77,7 +92,8 @@ public class SubjectServiceImpl implements SubjectService {
     @Override
     @Transactional(readOnly = true)
     public List<SubjectResponseDTO> getStudentSubjects(Long studentId) {
-        Student student = studentRepository.findById(studentId)
+        Admin admin = securityUtil.getCurrentAdmin();
+        Student student = studentRepository.findByIdAndAdmin(studentId, admin)
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "id", studentId));
         return student.getSubjects().stream()
                 .map(subjectMapper::toResponseDTO)
@@ -86,8 +102,9 @@ public class SubjectServiceImpl implements SubjectService {
 
     @Override
     public SubjectResponseDTO updateSubject(Long id, SubjectDTO dto) {
+        Admin admin = securityUtil.getCurrentAdmin();
         log.info("Updating subject ID: {}", id);
-        Subject subject = subjectRepository.findById(id)
+        Subject subject = subjectRepository.findByIdAndAdmin(id, admin)
                 .orElseThrow(() -> new ResourceNotFoundException("Subject", "id", id));
         if (dto.getSubjectName() != null) subject.setSubjectName(dto.getSubjectName());
         if (dto.getSubjectCode() != null) subject.setSubjectCode(dto.getSubjectCode());
@@ -97,8 +114,9 @@ public class SubjectServiceImpl implements SubjectService {
 
     @Override
     public void deleteSubject(Long id) {
+        Admin admin = securityUtil.getCurrentAdmin();
         log.info("Deleting subject ID: {}", id);
-        Subject subject = subjectRepository.findById(id)
+        Subject subject = subjectRepository.findByIdAndAdmin(id, admin)
                 .orElseThrow(() -> new ResourceNotFoundException("Subject", "id", id));
         // Remove from all student associations first to avoid FK constraint
         List<Student> students = studentRepository.findAll();

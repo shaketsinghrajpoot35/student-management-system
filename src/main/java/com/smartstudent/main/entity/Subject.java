@@ -28,6 +28,10 @@ public class Subject {
     @Column(length = 255)
     private String description;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "admin_id", nullable = true)
+    private Admin admin;
+
     @ManyToMany(mappedBy = "subjects", fetch = FetchType.LAZY)
     @Builder.Default
     private List<Student> students = new ArrayList<>();

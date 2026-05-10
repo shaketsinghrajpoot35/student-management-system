@@ -8,7 +8,9 @@ import java.util.Optional;
 
 @Repository
 public interface SubjectRepository extends JpaRepository<Subject, Long> {
-    Optional<Subject> findBySubjectCode(String subjectCode);
-    Optional<Subject> findBySubjectName(String subjectName);
-    boolean existsBySubjectCode(String subjectCode);
+    Optional<Subject> findBySubjectCodeAndAdmin(String subjectCode, com.smartstudent.main.entity.Admin admin);
+    Optional<Subject> findBySubjectNameAndAdmin(String subjectName, com.smartstudent.main.entity.Admin admin);
+    boolean existsBySubjectCodeAndAdmin(String subjectCode, com.smartstudent.main.entity.Admin admin);
+    java.util.List<Subject> findAllByAdmin(com.smartstudent.main.entity.Admin admin);
+    Optional<Subject> findByIdAndAdmin(Long id, com.smartstudent.main.entity.Admin admin);
 }

@@ -10,6 +10,8 @@ import com.smartstudent.main.repository.StudentDocumentRepository;
 import com.smartstudent.main.repository.StudentRepository;
 import com.smartstudent.main.service.StudentDocumentService;
 import com.smartstudent.main.util.FileStorageUtil;
+import com.smartstudent.main.util.SecurityUtil;
+import com.smartstudent.main.entity.Admin;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.Resource;
@@ -30,11 +32,13 @@ public class StudentDocumentServiceImpl implements StudentDocumentService {
     private final StudentRepository studentRepository;
     private final DocumentMapper documentMapper;
     private final FileStorageUtil fileStorageUtil;
+    private final SecurityUtil securityUtil;
 
     @Override
     public DocumentResponseDTO uploadDocument(Long studentId, DocumentDTO dto, MultipartFile file) {
+        Admin admin = securityUtil.getCurrentAdmin();
         log.info("Uploading document {} for student {}", dto.getDocumentType(), studentId);
-        Student student = studentRepository.findById(studentId)
+        Student student = studentRepository.findByIdAndAdmin(studentId, admin)
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "id", studentId));
 
         StudentDocument document = documentMapper.toEntity(dto);
@@ -110,7 +114,13 @@ public class StudentDocumentServiceImpl implements StudentDocumentService {
     }
 
     private StudentDocument findDocumentById(Long id) {
-        return documentRepository.findById(id)
+        Admin admin = securityUtil.getCurrentAdmin();
+        StudentDocument document = documentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Document", "id", id));
+        if (document.getStudent() != null && document.getStudent().getAdmin() != null &&
+            !document.getStudent().getAdmin().getId().equals(admin.getId())) {
+            throw new RuntimeException("Access denied to this document");
+        }
+        return document;
     }
 }
