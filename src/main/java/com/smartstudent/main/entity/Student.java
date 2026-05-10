@@ -12,7 +12,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "students")
+@Table(name = "students", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"samagra_id", "admin_id"})
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -24,7 +26,7 @@ public class Student {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 20)
+    @Column(nullable = false, length = 20)
     private String samagraId;
 
     @Column(nullable = false, length = 100)

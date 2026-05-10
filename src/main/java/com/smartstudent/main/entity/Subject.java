@@ -7,7 +7,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "subjects")
+@Table(name = "subjects", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"subject_code", "admin_id"})
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -22,7 +24,7 @@ public class Subject {
     @Column(nullable = false, length = 100)
     private String subjectName;
 
-    @Column(unique = true, length = 20)
+    @Column(nullable = false, length = 20)
     private String subjectCode;
 
     @Column(length = 255)
