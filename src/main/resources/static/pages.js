@@ -91,8 +91,9 @@ const Pages = {
   <div class="card">
     <div class="search-row">
       <input id="s-name" class="form-control search-input" placeholder="Search by name..." value="${search.name || ''}" oninput="debounceSearch()"/>
-      <input id="s-samagra" class="form-control" style="width:160px" placeholder="Samagra ID" value="${search.samagraId || ''}"/>
+      <input id="s-samagra" class="form-control" style="width:160px" placeholder="9-digit ID" maxlength="9" oninput="this.value=this.value.replace(/[^0-9]/g,'')" value="${search.samagraId || ''}"/>
       <input id="s-class" class="form-control" style="width:120px" placeholder="Class" value="${search.className || ''}"/>
+      <input id="s-admission" class="form-control" style="width:140px" placeholder="Admission No" value="${search.admissionNumber || ''}"/>
       <select id="s-stream" class="form-control" style="width:130px">
         <option value="">All Streams</option>
         ${['PCM', 'PCB', 'PCMB', 'COMMERCE', 'ARTS', 'GENERAL'].map(s => `<option ${search.stream === s ? 'selected' : ''}>${s}</option>`).join('')}
@@ -282,7 +283,7 @@ const Pages = {
   <div id="f-personal" class="tab-pane card">
     <div class="form-section-title">Personal Information</div>
     <div class="form-grid">
-      <div class="form-group"><label class="form-label">Samagra ID *</label><input id="f-samagraId" class="form-control" value="${p.samagraId || ''}" placeholder="e.g. SM12345678"/></div>
+      <div class="form-group"><label class="form-label">Samagra ID *</label><input id="f-samagraId" class="form-control" value="${p.samagraId || ''}" placeholder="9-digit numeric ID" maxlength="9" oninput="this.value=this.value.replace(/[^0-9]/g,'')"/></div>
       <div class="form-group"><label class="form-label">Full Name *</label><input id="f-fullName" class="form-control" value="${p.fullName || ''}" placeholder="Full Name"/></div>
       <div class="form-group"><label class="form-label">Gender *</label>
         <select id="f-gender" class="form-control">${['', 'MALE', 'FEMALE', 'OTHER'].map(v => `<option ${p.gender === v ? 'selected' : ''} value="${v}">${v || 'Select'}</option>`).join('')}</select></div>

@@ -13,7 +13,7 @@ import java.util.List;
 
 @Entity
 @Table(name = "students", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"samagra_id", "admin_id"})
+        @UniqueConstraint(columnNames = {"samagra_id_hash", "admin_id"})
 })
 @Getter
 @Setter
@@ -26,8 +26,12 @@ public class Student {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 255)
+    @jakarta.persistence.Convert(converter = com.smartstudent.main.util.CryptoConverter.class)
     private String samagraId;
+
+    @Column(nullable = false, length = 100)
+    private String samagraIdHash;
 
     @Column(nullable = false, length = 100)
     private String fullName;
@@ -132,6 +136,18 @@ public class Student {
     private LocalDateTime updatedAt;
 
     // Helper methods
+    @PrePersist
+    @PreUpdate
+    private void updateHash() {
+        if (this.samagraId != null) {
+            this.samagraIdHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(this.samagraId);
+        }
+    }
+
+    public void setSamagraId(String samagraId) {
+        this.samagraId = samagraId;
+    }
+
     public void addDocument(StudentDocument document) {
         documents.add(document);
         document.setStudent(this);

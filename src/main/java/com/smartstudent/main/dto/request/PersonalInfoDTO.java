@@ -13,7 +13,7 @@ import java.time.LocalDate;
 public class PersonalInfoDTO {
 
     @NotBlank(message = "Samagra ID is required")
-    @Size(min = 8, max = 20, message = "Samagra ID must be 8-20 characters")
+    @Pattern(regexp = "^[0-9]{9}$", message = "Samagra ID must be exactly 9 digits")
     private String samagraId;
 
     @NotBlank(message = "Full name is required")

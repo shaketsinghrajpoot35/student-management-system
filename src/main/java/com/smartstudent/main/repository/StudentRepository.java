@@ -14,9 +14,9 @@ import java.util.Optional;
 @Repository
 public interface StudentRepository extends JpaRepository<Student, Long> {
 
-    Optional<Student> findBySamagraIdAndAdmin(String samagraId, com.smartstudent.main.entity.Admin admin);
+    Optional<Student> findBySamagraIdHashAndAdmin(String samagraIdHash, com.smartstudent.main.entity.Admin admin);
 
-    boolean existsBySamagraIdAndAdmin(String samagraId, com.smartstudent.main.entity.Admin admin);
+    boolean existsBySamagraIdHashAndAdmin(String samagraIdHash, com.smartstudent.main.entity.Admin admin);
 
     Optional<Student> findByIdAndAdmin(Long id, com.smartstudent.main.entity.Admin admin);
 
@@ -25,19 +25,19 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
             LEFT JOIN s.academicDetails ad
             WHERE s.admin = :admin
               AND (:name IS NULL OR LOWER(s.fullName) LIKE LOWER(CONCAT('%', :name, '%')))
-              AND (:samagraId IS NULL OR s.samagraId = :samagraId)
-              AND (:className IS NULL OR ad.className = :className)
-              AND (:rollNumber IS NULL OR ad.rollNumber = :rollNumber)
-              AND (:admissionNumber IS NULL OR ad.admissionNumber = :admissionNumber)
+               AND (:samagraIdHash IS NULL OR s.samagraIdHash = :samagraIdHash)
+               AND (:className IS NULL OR ad.className = :className)
+               AND (:rollNumber IS NULL OR ad.rollNumber = :rollNumber)
+               AND (:admissionNumberHash IS NULL OR ad.admissionNumberHash = :admissionNumberHash)
               AND (:stream IS NULL OR ad.stream = :stream)
             """)
     Page<Student> searchStudents(
             @Param("admin") com.smartstudent.main.entity.Admin admin,
             @Param("name") String name,
-            @Param("samagraId") String samagraId,
+            @Param("samagraIdHash") String samagraIdHash,
             @Param("className") String className,
             @Param("rollNumber") String rollNumber,
-            @Param("admissionNumber") String admissionNumber,
+            @Param("admissionNumberHash") String admissionNumberHash,
             @Param("stream") Stream stream,
             Pageable pageable
     );

@@ -3,16 +3,23 @@ package com.smartstudent.main.util;
 import com.smartstudent.main.exception.BadRequestException;
 import com.smartstudent.main.exception.FileStorageException;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.UrlResource;
-import org.springframework.stereotype.Component;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
+import javax.crypto.Cipher;
+import javax.crypto.CipherInputStream;
+import javax.crypto.CipherOutputStream;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.stereotype.Component;
+import java.io.*;
 import java.net.MalformedURLException;
 import java.nio.file.*;
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
@@ -20,12 +27,23 @@ import java.util.UUID;
 @Slf4j
 public class FileStorageUtil {
 
+    private static final String ALGORITHM = "AES";
+    private static final String TRANSFORMATION = "AES/GCM/NoPadding";
+    private static final int GCM_IV_LENGTH = 12;
+    private static final int GCM_TAG_LENGTH = 128;
     private static final List<String> ALLOWED_CONTENT_TYPES =
             List.of("application/pdf", "image/jpeg", "image/jpg", "image/png");
     private static final long MAX_FILE_SIZE = 10 * 1024 * 1024L; // 10 MB
 
     @Value("${file.upload.dir}")
     private String uploadDir;
+
+    @Value("${app.security.file-key}")
+    private String fileKeyBase64;
+
+    private byte[] getFileKey() {
+        return Base64.getDecoder().decode(fileKeyBase64);
+    }
 
     /**
      * Store a file for a student document.
@@ -36,7 +54,7 @@ public class FileStorageUtil {
 
         String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
         String extension = getExtension(originalFilename);
-        String uniqueFileName = documentType + "_" + UUID.randomUUID() + "." + extension;
+        String uniqueFileName = UUID.randomUUID().toString() + ".enc"; // Randomized filename as per recommendation
 
         try {
             Path studentDir = Paths.get(uploadDir)
@@ -46,14 +64,52 @@ public class FileStorageUtil {
             Files.createDirectories(studentDir);
 
             Path targetPath = studentDir.resolve(uniqueFileName);
-            Files.copy(file.getInputStream(), targetPath, StandardCopyOption.REPLACE_EXISTING);
+
+            // Encryption setup
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            new SecureRandom().nextBytes(iv);
+
+            Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+            SecretKeySpec keySpec = new SecretKeySpec(getFileKey(), ALGORITHM);
+            GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
+            cipher.init(Cipher.ENCRYPT_MODE, keySpec, gcmParameterSpec);
+
+            try (InputStream inputStream = file.getInputStream();
+                 OutputStream outputStream = new FileOutputStream(targetPath.toFile())) {
+                
+                // Write IV first
+                outputStream.write(iv);
+
+                // Then write encrypted content
+                try (CipherOutputStream cipherOutputStream = new CipherOutputStream(outputStream, cipher)) {
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    while ((bytesRead = inputStream.read(buffer)) != -1) {
+                        cipherOutputStream.write(buffer, 0, bytesRead);
+                    }
+                }
+            }
 
             String relativePath = "student_" + studentId + "/" + uniqueFileName;
-            log.info("Stored file: {}", relativePath);
+            log.info("Stored encrypted file: {}", relativePath);
             return relativePath;
 
+        } catch (Exception e) {
+            throw new FileStorageException("Failed to store and encrypt file: " + originalFilename, e);
+        }
+    }
+
+    /**
+     * Delete a file from disk safely.
+     */
+    public void deleteFile(String filePath) {
+        if (!StringUtils.hasText(filePath)) return;
+        try {
+            Path fullPath = Paths.get(uploadDir).toAbsolutePath().normalize().resolve(filePath);
+            Files.deleteIfExists(fullPath);
+            log.info("Deleted file: {}", filePath);
         } catch (IOException e) {
-            throw new FileStorageException("Failed to store file: " + originalFilename, e);
+            log.warn("Could not delete file {}: {}. It might be locked or already removed.", filePath, e.getMessage());
         }
     }
 
@@ -63,29 +119,32 @@ public class FileStorageUtil {
     public Resource loadFileAsResource(String filePath) {
         try {
             Path fullPath = Paths.get(uploadDir).toAbsolutePath().normalize().resolve(filePath);
-            Resource resource = new UrlResource(fullPath.toUri());
-            if (resource.exists() && resource.isReadable()) {
-                return resource;
+            File file = fullPath.toFile();
+            if (!file.exists() || !file.canRead()) {
+                throw new FileStorageException("File not found or not readable: " + filePath);
             }
-            throw new FileStorageException("File not found or not readable: " + filePath);
-        } catch (MalformedURLException e) {
-            throw new FileStorageException("Invalid file path: " + filePath, e);
-        }
-    }
 
-    /**
-     * Delete a file from disk.
-     */
-    public void deleteFile(String filePath) {
-        if (!StringUtils.hasText(filePath)) return;
-        try {
-            Path fullPath = Paths.get(uploadDir).toAbsolutePath().normalize().resolve(filePath);
-            boolean deleted = Files.deleteIfExists(fullPath);
-            if (deleted) {
-                log.info("Deleted file: {}", filePath);
+            FileInputStream fis = new FileInputStream(file);
+            
+            // Read IV
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            int ivRead = fis.read(iv);
+            if (ivRead != GCM_IV_LENGTH) {
+                fis.close();
+                throw new FileStorageException("Invalid encrypted file: IV missing");
             }
-        } catch (IOException e) {
-            log.error("Could not delete file: {} — {}", filePath, e.getMessage());
+
+            // Decryption setup
+            Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+            SecretKeySpec keySpec = new SecretKeySpec(getFileKey(), ALGORITHM);
+            GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
+            cipher.init(Cipher.DECRYPT_MODE, keySpec, gcmParameterSpec);
+
+            CipherInputStream cis = new CipherInputStream(fis, cipher);
+            return new InputStreamResource(cis);
+
+        } catch (Exception e) {
+            throw new FileStorageException("Could not decrypt and load file: " + filePath, e);
         }
     }
 

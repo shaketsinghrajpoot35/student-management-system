@@ -28,13 +28,14 @@ public class StudentDocument {
     @Column(length = 100)
     private String documentName;
 
-    @Column(length = 50)
+    @Column(length = 255)
+    @jakarta.persistence.Convert(converter = com.smartstudent.main.util.CryptoConverter.class)
     private String documentNumber;
 
-    @Column(length = 255)
+    @Column(nullable = false, length = 255)
     private String fileName;
 
-    @Column(length = 500)
+    @Column(nullable = false, length = 500)
     private String filePath;
 
     @CreationTimestamp

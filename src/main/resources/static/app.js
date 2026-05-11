@@ -140,6 +140,7 @@ async function renderStudents() {
       ...(searchState.name && { name: searchState.name }),
       ...(searchState.samagraId && { samagraId: searchState.samagraId }),
       ...(searchState.className && { className: searchState.className }),
+      ...(searchState.admissionNumber && { admissionNumber: searchState.admissionNumber }),
       ...(searchState.stream && { stream: searchState.stream }),
     });
     const res = await api.getStudents(params.toString());
@@ -154,6 +155,7 @@ function searchStudents() {
     name: document.getElementById('s-name')?.value || '',
     samagraId: document.getElementById('s-samagra')?.value || '',
     className: document.getElementById('s-class')?.value || '',
+    admissionNumber: document.getElementById('s-admission')?.value || '',
     stream: document.getElementById('s-stream')?.value || '',
   };
   pageNum = 0;
@@ -286,16 +288,32 @@ function showTab(tabId) {
   event.target.classList.add('active');
 }
 
-async function deleteDoc(docId, studentId) {
-  if (!confirm('Delete this document?')) return;
-  try {
-    await api.deleteDocument(docId);
-    toast('Document deleted', 'success');
-    renderStudentDetail(studentId);
-  } catch (e) { toast(e.message, 'error'); }
+// Document management functions
+// Document management functions
+function deleteDoc(docId, studentId) {
+  document.getElementById('modal-content').innerHTML = `
+    <h3 style="margin-bottom:12px">🗑 Delete Document</h3>
+    <p style="color:var(--text-secondary);margin-bottom:20px">Are you sure you want to delete this document? This action cannot be undone.</p>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-danger" onclick="doDeleteDoc(${docId}, ${studentId})">Delete</button>
+    </div>`;
+  openModal();
 }
 
-// Fetch doc as authenticated blob then open inline
+async function doDeleteDoc(docId, studentId) {
+  try {
+    await api.deleteDocument(docId);
+    closeModal();
+    toast('Document deleted', 'success');
+    renderStudentDetail(studentId);
+  } catch (e) { 
+    console.error('Delete failed:', e);
+    toast(e.message || 'Delete failed', 'error'); 
+  }
+}
+
+// Fetch doc as authenticated blob then open in modal
 async function viewDocument(docId, fileName) {
   toast('Loading document...', 'info');
   try {
@@ -310,7 +328,6 @@ async function viewDocument(docId, fileName) {
     const isPdf = blob.type === 'application/pdf';
 
     if (isImage) {
-      // Show image in modal lightbox
       document.getElementById('modal-content').innerHTML = `
         <div style="display:flex;flex-direction:column;gap:12px">
           <div style="display:flex;justify-content:space-between;align-items:center">
@@ -327,20 +344,33 @@ async function viewDocument(docId, fileName) {
             <button class="btn btn-info btn-sm" onclick="downloadBlobUrl('${objectUrl}','${fileName}')">⬇ Download</button>
           </div>
         </div>`;
-      // Widen modal for image viewing
       document.querySelector('.modal').style.maxWidth = '800px';
       openModal();
     } else if (isPdf) {
-      // Open PDF in new tab
-      window.open(objectUrl, '_blank');
+      document.getElementById('modal-content').innerHTML = `
+        <div style="display:flex;flex-direction:column;height:80vh">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+            <h3 style="font-size:15px">📄 ${fileName}</h3>
+            <button class="btn btn-secondary btn-sm" onclick="closeModal()">✕ Close</button>
+          </div>
+          <iframe src="${objectUrl}" style="flex:1;width:100%;border:none;border-radius:8px"></iframe>
+          <div style="text-align:right;margin-top:10px">
+            <button class="btn btn-info btn-sm" onclick="downloadBlobUrl('${objectUrl}','${fileName}')">⬇ Download</button>
+          </div>
+        </div>`;
+      document.querySelector('.modal').style.maxWidth = '900px';
+      openModal();
     } else {
-      // Unknown type — trigger download
       downloadBlobUrl(objectUrl, fileName);
+      toast('Opening download for non-previewable file', 'info');
     }
-  } catch (e) { toast(e.message || 'Failed to load document', 'error'); }
+  } catch (e) { 
+    console.error('View failed:', e);
+    toast(e.message || 'Failed to load document', 'error'); 
+  }
 }
 
-// Programmatic download with auth
+// Programmatic download with auth and robust filename parsing
 async function downloadDocument(docId, fallbackFileName) {
   toast('Preparing download...', 'info');
   try {
@@ -350,17 +380,28 @@ async function downloadDocument(docId, fallbackFileName) {
     });
     if (!res.ok) throw new Error('Download failed');
 
-    // Extract real filename from backend header if available
     let finalFileName = fallbackFileName;
     const cd = res.headers.get('Content-Disposition');
-    if (cd && cd.includes('filename=')) {
-      finalFileName = cd.split('filename=')[1].replace(/"/g, '');
+    if (cd) {
+      // Prioritize filename* (RFC 5987) which handles UTF-8 correctly
+      const starMatch = cd.match(/filename\*=[^']+'[^']*'([^;\n]+)/i);
+      if (starMatch && starMatch[1]) {
+        finalFileName = decodeURIComponent(starMatch[1]);
+      } else {
+        // Fallback to standard filename=
+        const match = cd.match(/filename="?([^";\n]+)"?/i);
+        if (match && match[1]) finalFileName = match[1];
+      }
     }
 
     const blob = await res.blob();
-    downloadBlobUrl(URL.createObjectURL(blob), finalFileName);
+    const url = URL.createObjectURL(blob);
+    downloadBlobUrl(url, finalFileName);
     toast('Download started', 'success');
-  } catch (e) { toast(e.message || 'Download failed', 'error'); }
+  } catch (e) { 
+    console.error('Download failed:', e);
+    toast(e.message || 'Download failed', 'error'); 
+  }
 }
 
 // Helper: trigger browser save dialog
@@ -420,15 +461,7 @@ async function updateDocStatus(docId, status, studentId) {
   } catch (e) { toast(e.message || 'Update failed', 'error'); }
 }
 
-// Delete Document
-async function deleteDoc(docId, studentId) {
-  if (!confirm('Are you sure you want to delete this document?')) return;
-  try {
-    await api.deleteDocument(docId);
-    toast('Document deleted', 'success');
-    renderStudentDetail(studentId);
-  } catch (e) { toast(e.message || 'Delete failed', 'error'); }
-}
+// Removed - moved to top of file (line 291)
 // ============ REGISTER ============
 async function renderRegisterForm(prefill) {
   try {

@@ -5,7 +5,9 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "academic_details")
+@Table(name = "academic_details", uniqueConstraints = {
+        @UniqueConstraint(columnNames = {"admission_number_hash"})
+})
 @Getter
 @Setter
 @NoArgsConstructor
@@ -26,8 +28,12 @@ public class AcademicDetails {
     @Column(length = 20)
     private String rollNumber;
 
-    @Column(length = 30)
+    @Column(length = 255)
+    @jakarta.persistence.Convert(converter = com.smartstudent.main.util.CryptoConverter.class)
     private String admissionNumber;
+
+    @Column(length = 100)
+    private String admissionNumberHash;
 
     @Column(length = 50)
     private String board;
@@ -47,4 +53,16 @@ public class AcademicDetails {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "student_id", nullable = false, unique = true)
     private Student student;
+
+    @PrePersist
+    @PreUpdate
+    private void updateHash() {
+        if (this.admissionNumber != null) {
+            this.admissionNumberHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(this.admissionNumber);
+        }
+    }
+
+    public void setAdmissionNumber(String admissionNumber) {
+        this.admissionNumber = admissionNumber;
+    }
 }

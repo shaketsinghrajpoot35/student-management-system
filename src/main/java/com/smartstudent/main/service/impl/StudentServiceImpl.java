@@ -53,9 +53,18 @@ public class StudentServiceImpl implements StudentService {
         Admin admin = securityUtil.getCurrentAdmin();
         log.info("Registering student with Samagra ID: {} for admin: {}", request.getPersonalInfo().getSamagraId(), admin.getUsername());
 
-        if (studentRepository.existsBySamagraIdAndAdmin(request.getPersonalInfo().getSamagraId(), admin)) {
+        String samagraIdHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(request.getPersonalInfo().getSamagraId());
+        if (studentRepository.existsBySamagraIdHashAndAdmin(samagraIdHash, admin)) {
             throw new DuplicateResourceException(
                     "Student already exists with Samagra ID: " + request.getPersonalInfo().getSamagraId());
+        }
+
+        if (request.getAcademicInfo() != null && request.getAcademicInfo().getAdmissionNumber() != null) {
+            String admHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(request.getAcademicInfo().getAdmissionNumber());
+            if (academicDetailsRepository.existsByAdmissionNumberHash(admHash)) {
+                throw new DuplicateResourceException(
+                        "Admission Number already exists: " + request.getAcademicInfo().getAdmissionNumber());
+            }
         }
 
         // Map & save student
@@ -160,6 +169,14 @@ public class StudentServiceImpl implements StudentService {
 
         // Update personal info
         if (request.getPersonalInfo() != null) {
+            String newSamagraId = request.getPersonalInfo().getSamagraId();
+            if (newSamagraId != null && !newSamagraId.equals(student.getSamagraId())) {
+                Admin admin = securityUtil.getCurrentAdmin();
+                String samagraIdHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(newSamagraId);
+                if (studentRepository.existsBySamagraIdHashAndAdmin(samagraIdHash, admin)) {
+                    throw new DuplicateResourceException("Another student already exists with Samagra ID: " + newSamagraId);
+                }
+            }
             studentMapper.updateEntityFromDTO(request.getPersonalInfo(), student);
             student = studentRepository.save(student);
         }
@@ -169,6 +186,15 @@ public class StudentServiceImpl implements StudentService {
             AcademicDetails academic = academicDetailsRepository.findByStudentId(id)
                     .orElse(new AcademicDetails());
             academic.setStudent(student);
+            
+            String newAdmNo = request.getAcademicInfo().getAdmissionNumber();
+            if (newAdmNo != null && !newAdmNo.equals(academic.getAdmissionNumber())) {
+                String admHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(newAdmNo);
+                if (academicDetailsRepository.existsByAdmissionNumberHash(admHash)) {
+                    throw new DuplicateResourceException("Admission Number already exists: " + newAdmNo);
+                }
+            }
+
             academicDetailsMapper.updateFromDTO(request.getAcademicInfo(), academic);
             academicDetailsRepository.save(academic);
         }
@@ -243,8 +269,11 @@ public class StudentServiceImpl implements StudentService {
                 : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
+        String samagraIdHash = samagraId != null ? com.smartstudent.main.util.EncryptionUtil.hashForSearch(samagraId) : null;
+        String admissionNumberHash = admissionNumber != null ? com.smartstudent.main.util.EncryptionUtil.hashForSearch(admissionNumber) : null;
+
         Page<Student> studentPage = studentRepository.searchStudents(
-                admin, name, samagraId, className, rollNumber, admissionNumber, stream, pageable);
+                admin, name, samagraIdHash, className, rollNumber, admissionNumberHash, stream, pageable);
 
         List<StudentResponseDTO> content = studentPage.getContent()
                 .stream()

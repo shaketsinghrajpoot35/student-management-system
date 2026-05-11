@@ -22,10 +22,12 @@ public class BankDetails {
     @Column(length = 100)
     private String branchName;
 
-    @Column(length = 15)
+    @Column(length = 255)
+    @jakarta.persistence.Convert(converter = com.smartstudent.main.util.CryptoConverter.class)
     private String ifscCode;
 
-    @Column(length = 30)
+    @Column(length = 255)
+    @jakarta.persistence.Convert(converter = com.smartstudent.main.util.CryptoConverter.class)
     private String accountNumber;
 
     @Column(length = 100)

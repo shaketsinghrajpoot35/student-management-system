@@ -10,7 +10,7 @@ import java.util.Optional;
 public interface AcademicDetailsRepository extends JpaRepository<AcademicDetails, Long> {
     Optional<AcademicDetails> findByStudentId(Long studentId);
     boolean existsByRollNumber(String rollNumber);
-    boolean existsByAdmissionNumber(String admissionNumber);
+    boolean existsByAdmissionNumberHash(String admissionNumberHash);
     boolean existsByRollNumberAndStudentIdNot(String rollNumber, Long studentId);
-    boolean existsByAdmissionNumberAndStudentIdNot(String admissionNumber, Long studentId);
+    boolean existsByAdmissionNumberHashAndStudentIdNot(String admissionNumberHash, Long studentId);
 }
