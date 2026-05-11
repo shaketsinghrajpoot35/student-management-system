@@ -44,6 +44,12 @@ public class StudentDocumentServiceImpl implements StudentDocumentService {
         StudentDocument document = documentMapper.toEntity(dto);
         document.setStudent(student);
 
+        if (dto.getDocumentType() == com.smartstudent.main.enums.DocumentType.PEN_NUMBER) {
+            if (dto.getDocumentNumber() == null || !dto.getDocumentNumber().matches("^\\d{11}$")) {
+                throw new IllegalArgumentException("PEN Number must be exactly 11 digits");
+            }
+        }
+
         if (file != null && !file.isEmpty()) {
             String filePath = fileStorageUtil.storeFile(
                     file, studentId, dto.getDocumentType().name());

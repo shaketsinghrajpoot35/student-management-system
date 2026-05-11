@@ -4,7 +4,7 @@ public enum DocumentType {
     AADHAAR,
     SAMAGRA_ID,
     APAAR_ID,
-    PAN_CARD,
+    PEN_NUMBER,
     INCOME_CERTIFICATE,
     DOMICILE_CERTIFICATE,
     BIRTH_CERTIFICATE,

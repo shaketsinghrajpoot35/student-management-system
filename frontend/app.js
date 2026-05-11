@@ -377,7 +377,7 @@ function showUploadDoc(studentId) {
     <h3 style="margin-bottom:16px">📤 Upload Document</h3>
     <div class="form-group"><label class="form-label">Document Type *</label>
       <select id="u-docType" class="form-control">
-        ${['AADHAAR', 'SAMAGRA_ID', 'APAAR_ID', 'PAN_CARD', 'INCOME_CERTIFICATE', 'DOMICILE_CERTIFICATE', 'BIRTH_CERTIFICATE', 'CASTE_CERTIFICATE', 'TRANSFER_CERTIFICATE', 'ADMISSION_FORM', 'MP_TASS', 'MARKSHEET', 'STUDENT_PHOTO', 'PASSBOOK'].map(t => `<option>${t}</option>`).join('')}
+        ${['AADHAAR', 'SAMAGRA_ID', 'APAAR_ID', 'PEN_NUMBER', 'INCOME_CERTIFICATE', 'DOMICILE_CERTIFICATE', 'BIRTH_CERTIFICATE', 'CASTE_CERTIFICATE', 'TRANSFER_CERTIFICATE', 'ADMISSION_FORM', 'MP_TASS', 'MARKSHEET', 'STUDENT_PHOTO', 'PASSBOOK'].map(t => `<option>${t}</option>`).join('')}
       </select></div>
     <div class="form-group"><label class="form-label">Document Number</label><input id="u-docNum" class="form-control" placeholder="e.g. 1234 5678 9012"/></div>
     <div class="form-group"><label class="form-label">File (PDF/JPG/PNG)</label><input id="u-file" class="form-control" type="file" accept=".pdf,.jpg,.jpeg,.png"/></div>
@@ -391,6 +391,12 @@ function showUploadDoc(studentId) {
 async function doUploadDoc(studentId) {
   const docType = document.getElementById('u-docType').value;
   const docNum = document.getElementById('u-docNum').value;
+  
+  if (docType === 'PEN_NUMBER' && !/^\d{11}$/.test(docNum)) {
+    toast('PEN Number must be exactly 11 digits', 'error');
+    return;
+  }
+
   const file = document.getElementById('u-file').files[0];
   const metadata = JSON.stringify({ documentType: docType, documentNumber: docNum });
   const fd = new FormData();
