@@ -120,8 +120,22 @@ public class FileStorageUtil {
         try {
             Path fullPath = Paths.get(uploadDir).toAbsolutePath().normalize().resolve(filePath);
             File file = fullPath.toFile();
-            if (!file.exists() || !file.canRead()) {
-                throw new FileStorageException("File not found or not readable: " + filePath);
+            
+            if (!file.exists()) {
+                log.error("File not found on disk: {}", fullPath);
+                throw new FileStorageException("Document file not found on server storage. If you recently deployed, ensure you have a Render Disk attached to persist files.");
+            }
+            
+            if (!file.canRead()) {
+                throw new FileStorageException("File is not readable: " + filePath);
+            }
+
+            byte[] key;
+            try {
+                key = getFileKey();
+            } catch (Exception e) {
+                log.error("Invalid FILE_ENCRYPTION_KEY configuration: {}", e.getMessage());
+                throw new FileStorageException("Encryption key is invalid or not properly Base64 encoded. Check your environment variables.");
             }
 
             FileInputStream fis = new FileInputStream(file);
@@ -131,20 +145,23 @@ public class FileStorageUtil {
             int ivRead = fis.read(iv);
             if (ivRead != GCM_IV_LENGTH) {
                 fis.close();
-                throw new FileStorageException("Invalid encrypted file: IV missing");
+                throw new FileStorageException("Invalid encrypted file: Authentication header (IV) missing or corrupted.");
             }
 
             // Decryption setup
             Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-            SecretKeySpec keySpec = new SecretKeySpec(getFileKey(), ALGORITHM);
+            SecretKeySpec keySpec = new SecretKeySpec(key, ALGORITHM);
             GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
             cipher.init(Cipher.DECRYPT_MODE, keySpec, gcmParameterSpec);
 
             CipherInputStream cis = new CipherInputStream(fis, cipher);
             return new InputStreamResource(cis);
 
+        } catch (FileStorageException e) {
+            throw e;
         } catch (Exception e) {
-            throw new FileStorageException("Could not decrypt and load file: " + filePath, e);
+            log.error("Decryption failed for file {}: {}", filePath, e.getMessage());
+            throw new FileStorageException("Could not decrypt file. This usually happens if the FILE_ENCRYPTION_KEY has changed since the file was uploaded.", e);
         }
     }
 
