@@ -83,13 +83,6 @@ public class StudentServiceImpl implements StudentService {
 
         // Bank details
         if (request.getBankDetails() != null) {
-            String accNo = request.getBankDetails().getAccountNumber();
-            if (accNo != null && !accNo.trim().isEmpty()) {
-                String accHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(accNo.trim());
-                if (bankDetailsRepository.existsByAccountNumberHashAndStudentAdmin(accHash, admin)) {
-                    throw new DuplicateResourceException("Bank Account Number already exists for your account: " + accNo);
-                }
-            }
             BankDetails bankDetails = bankDetailsMapper.toEntity(request.getBankDetails());
             bankDetails.setStudent(student);
             bankDetailsRepository.save(bankDetails);
@@ -217,16 +210,6 @@ public class StudentServiceImpl implements StudentService {
             BankDetails bank = bankDetailsRepository.findByStudentId(id)
                     .orElse(new BankDetails());
             bank.setStudent(student);
-            
-            String newAccNo = request.getBankDetails().getAccountNumber();
-            if (newAccNo != null && !newAccNo.trim().isEmpty() && !newAccNo.equals(bank.getAccountNumber())) {
-                Admin admin = securityUtil.getCurrentAdmin();
-                String accHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(newAccNo.trim());
-                if (bankDetailsRepository.existsByAccountNumberHashAndStudentAdmin(accHash, admin)) {
-                    throw new DuplicateResourceException("Bank Account Number already exists for your account: " + newAccNo);
-                }
-            }
-
             bankDetailsMapper.updateFromDTO(request.getBankDetails(), bank);
             bankDetailsRepository.save(bank);
         }

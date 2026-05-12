@@ -1,10 +1,8 @@
 package com.smartstudent.main.util;
 
 import com.smartstudent.main.entity.AcademicDetails;
-import com.smartstudent.main.entity.BankDetails;
 import com.smartstudent.main.entity.Student;
 import com.smartstudent.main.repository.AcademicDetailsRepository;
-import com.smartstudent.main.repository.BankDetailsRepository;
 import com.smartstudent.main.repository.StudentRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +19,6 @@ public class SearchIndexFixer {
 
     private final StudentRepository studentRepository;
     private final AcademicDetailsRepository academicDetailsRepository;
-    private final BankDetailsRepository bankDetailsRepository;
 
     @PostConstruct
     @Transactional
@@ -51,19 +48,6 @@ public class SearchIndexFixer {
             }
         }
         if (academicCount > 0) log.info("Synchronized {} academicDetails admissionNumberSearch fields", academicCount);
-
-        // Fix BankDetails accountNumberHash
-        List<BankDetails> bankDetails = bankDetailsRepository.findAll();
-        long bankCount = 0;
-        for (BankDetails bd : bankDetails) {
-            if (bd.getAccountNumberHash() == null && bd.getAccountNumber() != null) {
-                // The @PrePersist/@PreUpdate won't trigger on findAll unless we save
-                bd.setAccountNumberHash(com.smartstudent.main.util.EncryptionUtil.hashForSearch(bd.getAccountNumber()));
-                bankDetailsRepository.save(bd);
-                bankCount++;
-            }
-        }
-        if (bankCount > 0) log.info("Synchronized {} bankDetails accountNumberHash fields", bankCount);
         
         log.info("Search index synchronization completed.");
     }
