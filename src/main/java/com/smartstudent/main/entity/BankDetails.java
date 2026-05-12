@@ -31,6 +31,17 @@ public class BankDetails {
     private String accountNumber;
 
     @Column(length = 100)
+    private String accountNumberHash;
+
+    @PrePersist
+    @PreUpdate
+    private void updateHash() {
+        if (this.accountNumber != null) {
+            this.accountNumberHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(this.accountNumber);
+        }
+    }
+
+    @Column(length = 100)
     private String accountHolderName;
 
     @Column(length = 500)

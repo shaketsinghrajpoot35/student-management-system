@@ -9,5 +9,5 @@ import java.util.Optional;
 @Repository
 public interface BankDetailsRepository extends JpaRepository<BankDetails, Long> {
     Optional<BankDetails> findByStudentId(Long studentId);
-    boolean existsByAccountNumber(String accountNumber);
+    boolean existsByAccountNumberHashAndStudentAdmin(String hash, com.smartstudent.main.entity.Admin admin);
 }
