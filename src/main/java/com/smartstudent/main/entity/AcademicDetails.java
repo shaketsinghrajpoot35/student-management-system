@@ -28,12 +28,15 @@ public class AcademicDetails {
     @Column(length = 20)
     private String rollNumber;
 
-    @Column(length = 255)
+    @Column(length = 255, nullable = false)
     @jakarta.persistence.Convert(converter = com.smartstudent.main.util.CryptoConverter.class)
     private String admissionNumber;
 
     @Column(length = 100)
     private String admissionNumberHash;
+
+    @Column(length = 100)
+    private String admissionNumberSearch;
 
     @Column(length = 50)
     private String board;
@@ -59,6 +62,7 @@ public class AcademicDetails {
     private void updateHash() {
         if (this.admissionNumber != null) {
             this.admissionNumberHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(this.admissionNumber);
+            this.admissionNumberSearch = this.admissionNumber; // Plain text for partial search
         }
     }
 

@@ -25,19 +25,19 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
             LEFT JOIN s.academicDetails ad
             WHERE s.admin = :admin
               AND (:name IS NULL OR LOWER(s.fullName) LIKE LOWER(CONCAT('%', :name, '%')))
-               AND (:samagraIdHash IS NULL OR s.samagraIdHash = :samagraIdHash)
+               AND (:samagraId IS NULL OR LOWER(s.samagraIdSearch) LIKE LOWER(CONCAT('%', :samagraId, '%')))
                AND (:className IS NULL OR ad.className = :className)
                AND (:rollNumber IS NULL OR ad.rollNumber = :rollNumber)
-               AND (:admissionNumberHash IS NULL OR ad.admissionNumberHash = :admissionNumberHash)
+               AND (:admissionNumber IS NULL OR LOWER(ad.admissionNumberSearch) LIKE LOWER(CONCAT('%', :admissionNumber, '%')))
               AND (:stream IS NULL OR ad.stream = :stream)
             """)
     Page<Student> searchStudents(
             @Param("admin") com.smartstudent.main.entity.Admin admin,
             @Param("name") String name,
-            @Param("samagraIdHash") String samagraIdHash,
+            @Param("samagraId") String samagraId,
             @Param("className") String className,
             @Param("rollNumber") String rollNumber,
-            @Param("admissionNumberHash") String admissionNumberHash,
+            @Param("admissionNumber") String admissionNumber,
             @Param("stream") Stream stream,
             Pageable pageable
     );

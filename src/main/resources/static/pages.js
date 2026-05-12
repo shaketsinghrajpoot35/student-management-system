@@ -5,11 +5,6 @@ const Pages = {
   login: () => `
 <div class="login-page">
   <div class="login-card fade-in">
-    <div class="login-logo">
-      <span class="icon">🎓</span>
-      <h1>SmartStudent</h1>
-      <p>Secure Admin Portal</p>
-    </div>
     <div id="login-error" class="login-error"></div>
     <div class="form-group">
       <label class="form-label">Email or Username</label>
@@ -23,17 +18,21 @@ const Pages = {
     <div style="margin-top:16px;text-align:center;font-size:14px;color:var(--text-muted)">
       Don't have an account? <a href="#" onclick="navigate('signup')" style="color:var(--primary);text-decoration:none;font-weight:500">Sign Up</a>
     </div>
+    <div class="dev-credits" style="margin-top:24px; background:rgba(255,255,255,0.02)">
+      <p>Made with ❤️ by</p>
+      <a href="https://github.com/shaketsinghrajpoot35" target="_blank" class="dev-name">Shaket Singh Rajpoot</a>
+      <div class="dev-socials">
+        <a href="https://github.com/shaketsinghrajpoot35" target="_blank" title="GitHub">🐙</a>
+        <a href="https://www.linkedin.com/in/shaket-singh-rajpoot-702439327/" target="_blank" title="LinkedIn">🔗</a>
+        <a href="https://www.instagram.com/shaket_.singh_rajpoot24?igsh=MWdlODM5dXJqaXNjYg==" target="_blank" title="Instagram">📸</a>
+      </div>
+    </div>
   </div>
 </div>`,
 
   signup: () => `
 <div class="login-page">
   <div class="login-card fade-in">
-    <div class="login-logo">
-      <span class="icon">🎓</span>
-      <h1>SmartStudent</h1>
-      <p>Admin Registration</p>
-    </div>
     <div id="signup-error" class="login-error"></div>
     <div class="form-group">
       <label class="form-label">Email</label>
@@ -50,6 +49,15 @@ const Pages = {
     <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doSignup()">Create Account</button>
     <div style="margin-top:16px;text-align:center;font-size:14px;color:var(--text-muted)">
       Already have an account? <a href="#" onclick="navigate('login')" style="color:var(--primary);text-decoration:none;font-weight:500">Login</a>
+    </div>
+    <div class="dev-credits" style="margin-top:24px; background:rgba(255,255,255,0.02)">
+      <p>Made with ❤️ by</p>
+      <a href="https://github.com/shaketsinghrajpoot35" target="_blank" class="dev-name">Shaket Singh Rajpoot</a>
+      <div class="dev-socials">
+        <a href="https://github.com/shaketsinghrajpoot35" target="_blank" title="GitHub">🐙</a>
+        <a href="https://www.linkedin.com/in/shaket-singh-rajpoot-702439327/" target="_blank" title="LinkedIn">🔗</a>
+        <a href="https://www.instagram.com/shaket_.singh_rajpoot24?igsh=MWdlODM5dXJqaXNjYg==" target="_blank" title="Instagram">📸</a>
+      </div>
     </div>
   </div>
 </div>`,
@@ -92,7 +100,10 @@ const Pages = {
     <div class="search-row">
       <input id="s-name" class="form-control search-input" placeholder="Search by name..." value="${search.name || ''}" oninput="debounceSearch()"/>
       <input id="s-samagra" class="form-control" style="width:160px" placeholder="9-digit ID" maxlength="9" oninput="this.value=this.value.replace(/[^0-9]/g,'')" value="${search.samagraId || ''}"/>
-      <input id="s-class" class="form-control" style="width:120px" placeholder="Class" value="${search.className || ''}"/>
+      <select id="s-class" class="form-control" style="width:140px">
+        <option value="">All Classes</option>
+        ${['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Undergraduate', 'Postgraduate', 'Diploma', 'PhD', 'Other'].map(v => `<option ${search.className === v ? 'selected' : ''} value="${v}">${v}</option>`).join('')}
+      </select>
       <input id="s-admission" class="form-control" style="width:140px" placeholder="Admission No" value="${search.admissionNumber || ''}"/>
       <select id="s-stream" class="form-control" style="width:130px">
         <option value="">All Streams</option>
@@ -100,6 +111,7 @@ const Pages = {
       </select>
       <button class="btn btn-primary" onclick="searchStudents()">🔍 Search</button>
       <button class="btn btn-secondary" onclick="clearSearch()">✕ Clear</button>
+      <button class="btn btn-success" onclick="exportCsv()">📊 Export CSV</button>
     </div>
     <div class="table-wrap">
       <table>
@@ -321,7 +333,7 @@ const Pages = {
         <select id="f-class" class="form-control">${['', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Undergraduate', 'Postgraduate', 'Diploma', 'PhD', 'Other'].map(v => `<option ${ac.className === v ? 'selected' : ''} value="${v}">${v || 'Select'}</option>`).join('')}</select></div>
       <div class="form-group"><label class="form-label">Section</label><input id="f-section" class="form-control" value="${ac.section || ''}"/></div>
       <div class="form-group"><label class="form-label">Roll Number</label><input id="f-roll" class="form-control" value="${ac.rollNumber || ''}"/></div>
-      <div class="form-group"><label class="form-label">Admission Number</label><input id="f-admNo" class="form-control" value="${ac.admissionNumber || ''}"/></div>
+      <div class="form-group"><label class="form-label">Admission Number *</label><input id="f-admNo" class="form-control" value="${ac.admissionNumber || ''}" placeholder="Unique Admission Number"/></div>
       <div class="form-group"><label class="form-label">Board</label><input id="f-board" class="form-control" value="${ac.board || ''}"/></div>
       <div class="form-group"><label class="form-label">Academic Year</label><input id="f-year" class="form-control" value="${ac.academicYear || ''}"/></div>
       <div class="form-group"><label class="form-label">Stream</label>

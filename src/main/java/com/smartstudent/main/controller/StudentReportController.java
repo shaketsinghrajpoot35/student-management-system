@@ -1,16 +1,13 @@
 package com.smartstudent.main.controller;
 
+import com.smartstudent.main.service.StudentExportService;
 import com.smartstudent.main.service.StudentPdfService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayInputStream;
 
@@ -20,6 +17,7 @@ import java.io.ByteArrayInputStream;
 public class StudentReportController {
 
     private final StudentPdfService studentPdfService;
+    private final StudentExportService studentExportService;
 
     @GetMapping("/student/{id}")
     public ResponseEntity<InputStreamResource> downloadStudentRegistrationForm(@PathVariable Long id) {
@@ -32,6 +30,26 @@ public class StudentReportController {
                 .ok()
                 .headers(headers)
                 .contentType(MediaType.APPLICATION_PDF)
+                .body(new InputStreamResource(bis));
+    }
+
+    @GetMapping("/export/csv")
+    public ResponseEntity<InputStreamResource> exportToCsv(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String samagraId,
+            @RequestParam(required = false) String className,
+            @RequestParam(required = false) String admissionNumber,
+            @RequestParam(required = false) String stream) {
+        
+        ByteArrayInputStream bis = studentExportService.exportStudentsToCsv(name, samagraId, className, admissionNumber, stream);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Disposition", "attachment; filename=students_export.csv");
+
+        return ResponseEntity
+                .ok()
+                .headers(headers)
+                .contentType(MediaType.parseMediaType("text/csv"))
                 .body(new InputStreamResource(bis));
     }
 }

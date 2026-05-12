@@ -59,12 +59,14 @@ public class StudentServiceImpl implements StudentService {
                     "Student already exists with Samagra ID: " + request.getPersonalInfo().getSamagraId());
         }
 
-        if (request.getAcademicInfo() != null && request.getAcademicInfo().getAdmissionNumber() != null) {
-            String admHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(request.getAcademicInfo().getAdmissionNumber());
-            if (academicDetailsRepository.existsByAdmissionNumberHash(admHash)) {
-                throw new DuplicateResourceException(
-                        "Admission Number already exists: " + request.getAcademicInfo().getAdmissionNumber());
-            }
+        if (request.getAcademicInfo() == null || request.getAcademicInfo().getAdmissionNumber() == null || request.getAcademicInfo().getAdmissionNumber().trim().isEmpty()) {
+            throw new IllegalArgumentException("Admission Number is required");
+        }
+        
+        String admHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(request.getAcademicInfo().getAdmissionNumber().trim());
+        if (academicDetailsRepository.existsByAdmissionNumberHash(admHash)) {
+            throw new DuplicateResourceException(
+                    "Admission Number already exists: " + request.getAcademicInfo().getAdmissionNumber());
         }
 
         // Map & save student
@@ -188,8 +190,12 @@ public class StudentServiceImpl implements StudentService {
             academic.setStudent(student);
             
             String newAdmNo = request.getAcademicInfo().getAdmissionNumber();
-            if (newAdmNo != null && !newAdmNo.equals(academic.getAdmissionNumber())) {
-                String admHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(newAdmNo);
+            if (newAdmNo == null || newAdmNo.trim().isEmpty()) {
+                throw new IllegalArgumentException("Admission Number cannot be empty");
+            }
+            
+            if (!newAdmNo.equals(academic.getAdmissionNumber())) {
+                String admHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(newAdmNo.trim());
                 if (academicDetailsRepository.existsByAdmissionNumberHash(admHash)) {
                     throw new DuplicateResourceException("Admission Number already exists: " + newAdmNo);
                 }
@@ -269,11 +275,8 @@ public class StudentServiceImpl implements StudentService {
                 : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        String samagraIdHash = samagraId != null ? com.smartstudent.main.util.EncryptionUtil.hashForSearch(samagraId) : null;
-        String admissionNumberHash = admissionNumber != null ? com.smartstudent.main.util.EncryptionUtil.hashForSearch(admissionNumber) : null;
-
         Page<Student> studentPage = studentRepository.searchStudents(
-                admin, name, samagraIdHash, className, rollNumber, admissionNumberHash, stream, pageable);
+                admin, name, samagraId, className, rollNumber, admissionNumber, stream, pageable);
 
         List<StudentResponseDTO> content = studentPage.getContent()
                 .stream()

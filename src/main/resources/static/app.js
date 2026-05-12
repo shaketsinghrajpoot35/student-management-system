@@ -73,18 +73,25 @@ function logout() {
 function showSidebar() {
   document.getElementById('sidebar').classList.remove('hidden');
   document.getElementById('main-content').classList.remove('full-width');
+  const topBar = document.getElementById('top-bar');
+  if (topBar) topBar.classList.remove('hidden');
+  
   const name = localStorage.getItem('adminName');
   if (name) document.getElementById('admin-name').textContent = name;
-  const schoolName = localStorage.getItem('schoolName');
+  
+  const schoolName = localStorage.getItem('schoolName') || 'SmartStudent';
   const brandEl = document.getElementById('brand-name-header');
-  if (brandEl) {
-    brandEl.textContent = schoolName ? schoolName : 'SmartStudent';
-  }
+  if (brandEl) brandEl.textContent = schoolName;
+  
+  const topSchoolEl = document.getElementById('school-name-top');
+  if (topSchoolEl) topSchoolEl.textContent = schoolName;
 }
 
 function hideSidebar() {
   document.getElementById('sidebar').classList.add('hidden');
   document.getElementById('main-content').classList.add('full-width');
+  const topBar = document.getElementById('top-bar');
+  if (topBar) topBar.classList.add('hidden');
 }
 
 // ============ LOGIN & SIGNUP ============
@@ -163,6 +170,32 @@ function searchStudents() {
 }
 
 function clearSearch() { searchState = {}; pageNum = 0; renderStudents(); }
+
+async function exportCsv() {
+  try {
+    const params = new URLSearchParams({
+      ...(searchState.name && { fullName: searchState.name }),
+      ...(searchState.samagraId && { samagraId: searchState.samagraId }),
+      ...(searchState.className && { className: searchState.className }),
+      ...(searchState.admissionNumber && { admissionNumber: searchState.admissionNumber }),
+      ...(searchState.stream && { stream: searchState.stream }),
+    });
+    
+    toast('Preparing your CSV file...', 'info');
+    const blob = await api.downloadCsv(params.toString());
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = url;
+    a.download = `Students_Export_${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    toast('CSV downloaded successfully', 'success');
+  } catch (e) {
+    toast('Download failed: ' + e.message, 'error');
+  }
+}
 
 function debounceSearch() {
   clearTimeout(debounceTimer);
@@ -542,8 +575,8 @@ function buildFormData(payload) {
 
 async function submitRegister() {
   const payload = getFormData();
-  if (!payload.personalInfo.samagraId || !payload.personalInfo.fullName || !payload.personalInfo.gender || !payload.personalInfo.dateOfBirth || !payload.personalInfo.mobileNumber) {
-    toast('Please fill all required fields (Samagra ID, Name, Gender, DOB, Mobile)', 'error'); return;
+  if (!payload.personalInfo.samagraId || !payload.personalInfo.fullName || !payload.personalInfo.gender || !payload.personalInfo.dateOfBirth || !payload.personalInfo.mobileNumber || !payload.academicInfo.admissionNumber) {
+    toast('Please fill all required fields (*)', 'error'); return;
   }
   try {
     const res = await api.registerStudent(buildFormData(payload));
@@ -557,6 +590,9 @@ async function submitRegister() {
 
 async function submitUpdate() {
   const payload = getFormData();
+  if (!payload.academicInfo.admissionNumber) {
+    toast('Admission Number is required', 'error'); return;
+  }
   try {
     await api.updateStudent(currentStudentId, buildFormData(payload));
     // Upload passbook if a new one was selected

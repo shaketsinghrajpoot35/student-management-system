@@ -33,6 +33,9 @@ public class Student {
     @Column(nullable = false, length = 100)
     private String samagraIdHash;
 
+    @Column(length = 100)
+    private String samagraIdSearch;
+
     @Column(nullable = false, length = 100)
     private String fullName;
 
@@ -141,6 +144,7 @@ public class Student {
     private void updateHash() {
         if (this.samagraId != null) {
             this.samagraIdHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(this.samagraId);
+            this.samagraIdSearch = this.samagraId;
         }
     }
 
