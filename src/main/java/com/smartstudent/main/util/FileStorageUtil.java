@@ -100,6 +100,33 @@ public class FileStorageUtil {
     }
 
     /**
+     * Encrypt a MultipartFile and return the combined IV + Encrypted Data as a byte array.
+     */
+    public byte[] encryptToBytes(MultipartFile file) {
+        validateFile(file);
+        try {
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            new SecureRandom().nextBytes(iv);
+
+            Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+            SecretKeySpec keySpec = new SecretKeySpec(getFileKey(), ALGORITHM);
+            GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
+            cipher.init(Cipher.ENCRYPT_MODE, keySpec, gcmParameterSpec);
+
+            byte[] encryptedData = cipher.doFinal(file.getBytes());
+
+            // Combine IV + Data
+            byte[] combined = new byte[iv.length + encryptedData.length];
+            System.arraycopy(iv, 0, combined, 0, iv.length);
+            System.arraycopy(encryptedData, 0, combined, iv.length, encryptedData.length);
+
+            return combined;
+        } catch (Exception e) {
+            throw new FileStorageException("Failed to encrypt file data: " + file.getOriginalFilename(), e);
+        }
+    }
+
+    /**
      * Delete a file from disk safely.
      */
     public void deleteFile(String filePath) {
@@ -162,6 +189,39 @@ public class FileStorageUtil {
         } catch (Exception e) {
             log.error("Decryption failed for file {}: {}", filePath, e.getMessage());
             throw new FileStorageException("Could not decrypt file. This usually happens if the FILE_ENCRYPTION_KEY has changed since the file was uploaded.", e);
+        }
+    }
+
+    /**
+     * Decrypt a byte array (IV + Encrypted Data) and return as a Resource.
+     */
+    public Resource decryptToResource(byte[] combinedData, String fileName) {
+        if (combinedData == null || combinedData.length <= GCM_IV_LENGTH) {
+            throw new FileStorageException("Invalid or missing encrypted data in database.");
+        }
+
+        try {
+            // Extract IV
+            byte[] iv = new byte[GCM_IV_LENGTH];
+            System.arraycopy(combinedData, 0, iv, 0, GCM_IV_LENGTH);
+
+            // Extract Encrypted Data
+            int dataLength = combinedData.length - GCM_IV_LENGTH;
+            byte[] encryptedData = new byte[dataLength];
+            System.arraycopy(combinedData, GCM_IV_LENGTH, encryptedData, 0, dataLength);
+
+            // Decryption setup
+            Cipher cipher = Cipher.getInstance(TRANSFORMATION);
+            SecretKeySpec keySpec = new SecretKeySpec(getFileKey(), ALGORITHM);
+            GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
+            cipher.init(Cipher.DECRYPT_MODE, keySpec, gcmParameterSpec);
+
+            byte[] decryptedData = cipher.doFinal(encryptedData);
+            return new InputStreamResource(new ByteArrayInputStream(decryptedData));
+
+        } catch (Exception e) {
+            log.error("Decryption from database failed for {}: {}", fileName, e.getMessage());
+            throw new FileStorageException("Could not decrypt document data from database.", e);
         }
     }
 

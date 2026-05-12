@@ -38,6 +38,10 @@ public class StudentDocument {
     @Column(nullable = false, length = 500)
     private String filePath;
 
+    @Lob
+    @Column(name = "encrypted_data", columnDefinition = "LONGBLOB")
+    private byte[] encryptedData;
+
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime uploadDate;
