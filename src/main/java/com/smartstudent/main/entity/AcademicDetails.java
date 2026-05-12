@@ -31,10 +31,10 @@ public class AcademicDetails {
     private String admissionNumber;
 
     @Column(length = 100)
-    private String admissionNumberHash;
+    private String admNoHash;
 
     @Column(length = 100)
-    private String admissionNumberSearch;
+    private String admNoSearch;
 
     @Column(length = 50)
     private String board;
@@ -59,8 +59,8 @@ public class AcademicDetails {
     @PreUpdate
     private void updateHash() {
         if (this.admissionNumber != null) {
-            this.admissionNumberHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(this.admissionNumber);
-            this.admissionNumberSearch = this.admissionNumber; // Plain text for partial search
+            this.admNoHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(this.admissionNumber);
+            this.admNoSearch = this.admissionNumber; // Plain text for partial search
         }
     }
 

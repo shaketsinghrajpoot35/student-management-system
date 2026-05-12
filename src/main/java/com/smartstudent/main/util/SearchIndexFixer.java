@@ -3,6 +3,7 @@ package com.smartstudent.main.util;
 import com.smartstudent.main.entity.AcademicDetails;
 import com.smartstudent.main.entity.Student;
 import com.smartstudent.main.repository.AcademicDetailsRepository;
+import com.smartstudent.main.repository.BankDetailsRepository;
 import com.smartstudent.main.repository.StudentRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -19,12 +20,13 @@ public class SearchIndexFixer {
 
     private final StudentRepository studentRepository;
     private final AcademicDetailsRepository academicDetailsRepository;
+    private final BankDetailsRepository bankDetailsRepository;
 
     @PostConstruct
     @Transactional
     public void fixSearchIndexes() {
         log.info("Starting search index synchronization...");
-        
+
         // Fix Student samagraIdSearch
         List<Student> students = studentRepository.findAll();
         long studentCount = 0;
@@ -37,17 +39,25 @@ public class SearchIndexFixer {
         }
         if (studentCount > 0) log.info("Synchronized {} student samagraIdSearch fields", studentCount);
 
-        // Fix AcademicDetails admissionNumberSearch
-        List<AcademicDetails> academicDetails = academicDetailsRepository.findAll();
+        // Fix AcademicDetails admNoSearch & admNoHash
+        List<AcademicDetails> academicDetailsList = academicDetailsRepository.findAll();
         long academicCount = 0;
-        for (AcademicDetails ad : academicDetails) {
-            if (ad.getAdmissionNumberSearch() == null && ad.getAdmissionNumber() != null) {
-                ad.setAdmissionNumberSearch(ad.getAdmissionNumber());
+        for (AcademicDetails ad : academicDetailsList) {
+            boolean updated = false;
+            if (ad.getAdmNoSearch() == null && ad.getAdmissionNumber() != null) {
+                ad.setAdmNoSearch(ad.getAdmissionNumber());
+                updated = true;
+            }
+            if (ad.getAdmNoHash() == null && ad.getAdmissionNumber() != null) {
+                ad.setAdmNoHash(com.smartstudent.main.util.EncryptionUtil.hashForSearch(ad.getAdmissionNumber()));
+                updated = true;
+            }
+            if (updated) {
                 academicDetailsRepository.save(ad);
                 academicCount++;
             }
         }
-        if (academicCount > 0) log.info("Synchronized {} academicDetails admissionNumberSearch fields", academicCount);
+        if (academicCount > 0) log.info("Synchronized {} academicDetails admission number fields", academicCount);
         
         log.info("Search index synchronization completed.");
     }

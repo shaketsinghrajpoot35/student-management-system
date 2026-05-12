@@ -28,7 +28,7 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
                AND (:samagraId IS NULL OR LOWER(s.samagraIdSearch) LIKE LOWER(CONCAT('%', :samagraId, '%')))
                AND (:className IS NULL OR ad.className = :className)
                AND (:rollNumber IS NULL OR ad.rollNumber = :rollNumber)
-               AND (:admissionNumber IS NULL OR LOWER(ad.admissionNumberSearch) LIKE LOWER(CONCAT('%', :admissionNumber, '%')))
+               AND (:admissionNumber IS NULL OR LOWER(ad.admNoSearch) LIKE LOWER(CONCAT('%', :admissionNumber, '%')))
               AND (:stream IS NULL OR ad.stream = :stream)
             """)
     Page<Student> searchStudents(

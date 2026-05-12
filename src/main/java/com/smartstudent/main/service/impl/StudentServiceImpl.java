@@ -64,7 +64,7 @@ public class StudentServiceImpl implements StudentService {
         }
         
         String admHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(request.getAcademicInfo().getAdmissionNumber().trim());
-        if (academicDetailsRepository.existsByAdmissionNumberHashAndStudentAdmin(admHash, admin)) {
+        if (academicDetailsRepository.existsByAdmNoHashAndStudentAdmin(admHash, admin)) {
             throw new DuplicateResourceException(
                     "Admission Number already exists for your account: " + request.getAcademicInfo().getAdmissionNumber());
         }
@@ -197,7 +197,7 @@ public class StudentServiceImpl implements StudentService {
             if (!newAdmNo.equals(academic.getAdmissionNumber())) {
                 Admin admin = securityUtil.getCurrentAdmin();
                 String admHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(newAdmNo.trim());
-                if (academicDetailsRepository.existsByAdmissionNumberHashAndStudentAdmin(admHash, admin)) {
+                if (academicDetailsRepository.existsByAdmNoHashAndStudentAdmin(admHash, admin)) {
                     throw new DuplicateResourceException("Admission Number already exists for your account: " + newAdmNo);
                 }
             }
