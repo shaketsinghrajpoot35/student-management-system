@@ -5,9 +5,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 @Entity
-@Table(name = "academic_details", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"admission_number_hash"})
-})
+@Table(name = "academic_details")
 @Getter
 @Setter
 @NoArgsConstructor
