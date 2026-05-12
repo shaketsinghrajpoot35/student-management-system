@@ -370,6 +370,51 @@ async function viewDocument(docId, fileName) {
   }
 }
 
+// Robust download helper
+function downloadBlobUrl(content, fileName) {
+  const isBlob = typeof content !== 'string';
+  const url = isBlob ? window.URL.createObjectURL(content) : content;
+  const a = document.createElement('a');
+  a.style.display = 'none';
+  a.href = url;
+  a.download = fileName;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(() => {
+    document.body.removeChild(a);
+    if (isBlob) window.URL.revokeObjectURL(url);
+  }, 100);
+}
+
+// Authenticated PDF report download
+async function downloadStudentPdf(id, fullName) {
+  toast('Generating PDF Registration Form...', 'info');
+  try {
+    const token = api.getToken();
+    const res = await fetch(api.reportUrl(id), {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'PDF generation failed');
+    }
+
+    const blob = await res.blob();
+    if (blob.type === 'application/json') { // Likely an error message returned as blob
+      throw new Error('Server returned an error instead of a PDF');
+    }
+
+    const safeName = fullName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    const fileName = `Registration_Form_${safeName}.pdf`;
+    downloadBlobUrl(blob, fileName);
+    toast('PDF downloaded successfully!', 'success');
+  } catch (e) {
+    console.error('PDF Download failed:', e);
+    toast(e.message || 'PDF Download failed', 'error');
+  }
+}
+
 // Programmatic download with auth and robust filename parsing
 async function downloadDocument(docId, fallbackFileName) {
   toast('Preparing download...', 'info');
@@ -378,38 +423,31 @@ async function downloadDocument(docId, fallbackFileName) {
     const res = await fetch(api.downloadUrl(docId), {
       headers: { Authorization: `Bearer ${token}` }
     });
-    if (!res.ok) throw new Error('Download failed');
+    
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Download failed');
+    }
 
-    let finalFileName = fallbackFileName;
+    let finalFileName = fallbackFileName || 'document';
     const cd = res.headers.get('Content-Disposition');
     if (cd) {
-      // Prioritize filename* (RFC 5987) which handles UTF-8 correctly
       const starMatch = cd.match(/filename\*=[^']+'[^']*'([^;\n]+)/i);
       if (starMatch && starMatch[1]) {
         finalFileName = decodeURIComponent(starMatch[1]);
       } else {
-        // Fallback to standard filename=
         const match = cd.match(/filename="?([^";\n]+)"?/i);
         if (match && match[1]) finalFileName = match[1];
       }
     }
 
     const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    downloadBlobUrl(url, finalFileName);
+    downloadBlobUrl(blob, finalFileName);
     toast('Download started', 'success');
   } catch (e) { 
     console.error('Download failed:', e);
     toast(e.message || 'Download failed', 'error'); 
   }
-}
-
-// Helper: trigger browser save dialog
-function downloadBlobUrl(url, fileName) {
-  const a = document.createElement('a');
-  a.href = url; a.download = fileName;
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a);
 }
 
 

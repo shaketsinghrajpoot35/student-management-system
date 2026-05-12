@@ -115,10 +115,11 @@ const Pages = {
             <td>${s.city || '-'}</td>
             <td><span class="badge ${s.studentStatus === 'ACTIVE' ? 'badge-green' : 'badge-yellow'}">${s.studentStatus}</span></td>
             <td><div class="td-actions">
-              <button class="btn btn-info btn-sm" onclick="navigate('student-detail',${s.id})">👁 View</button>
-              <button class="btn btn-secondary btn-sm" onclick="navigate('edit',${s.id})">✏️ Edit</button>
-              <button class="btn btn-danger btn-sm" onclick="confirmDelete(${s.id},'${s.fullName}')">🗑</button>
-            </div></td>
+               <button class="btn btn-info btn-sm" onclick="navigate('student-detail',${s.id})">👁 View</button>
+               <button class="btn btn-secondary btn-sm" onclick="downloadStudentPdf(${s.id},'${s.fullName}')">📄 PDF</button>
+               <button class="btn btn-secondary btn-sm" onclick="navigate('edit',${s.id})">✏️ Edit</button>
+               <button class="btn btn-danger btn-sm" onclick="confirmDelete(${s.id},'${s.fullName}')">🗑</button>
+             </div></td>
           </tr>`).join('')}
         </tbody>
       </table>
@@ -166,9 +167,10 @@ const Pages = {
       <div class="page-subtitle">Samagra ID: ${s.samagraId} &nbsp;|&nbsp; <span class="badge ${s.studentStatus === 'ACTIVE' ? 'badge-green' : 'badge-yellow'}">${s.studentStatus}</span></div>
     </div>
     <div style="display:flex;gap:10px">
-      <button class="btn btn-secondary" onclick="navigate('students')">← Back</button>
-      <button class="btn btn-primary" onclick="navigate('edit',${fd.id})">✏️ Edit Student</button>
-    </div>
+       <button class="btn btn-secondary" onclick="navigate('students')">← Back</button>
+       <button class="btn btn-secondary" onclick="downloadStudentPdf(${fd.id},'${s.fullName}')">📄 Download PDF</button>
+       <button class="btn btn-primary" onclick="navigate('edit',${fd.id})">✏️ Edit Student</button>
+     </div>
   </div>
   <div class="tabs" id="detail-tabs">
     <button class="tab-btn active" onclick="showTab('personal')">👤 Personal</button>

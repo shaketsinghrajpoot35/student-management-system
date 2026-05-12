@@ -78,6 +78,7 @@ const api = {
       });
   },
   downloadUrl: (id) => `${BASE_URL}/api/documents/download/${id}`,
+  reportUrl: (id) => `${BASE_URL}/api/reports/student/${id}`,
 
   // BANK
   getBank: (studentId) => api.get(`/api/bank-details/${studentId}`),

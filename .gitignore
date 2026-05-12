@@ -31,3 +31,10 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Application Specific ###
+uploads/
+metadata.json
+test.jpg
+test_upload.*
+*.enc
