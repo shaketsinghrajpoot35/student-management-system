@@ -78,17 +78,6 @@ const api = {
       });
   },
   downloadUrl: (id) => `${BASE_URL}/api/documents/download/${id}`,
-  reportUrl: (id) => `${BASE_URL}/api/reports/student/${id}`,
-  exportCsvUrl: (params = '') => `${BASE_URL}/api/reports/export/csv?${params}`,
-  
-  async downloadCsv(params = '') {
-    const t = this.getToken();
-    const res = await fetch(`${BASE_URL}/api/reports/export/csv?${params}`, {
-      headers: { 'Authorization': `Bearer ${t}` }
-    });
-    if (!res.ok) throw new Error('Download failed');
-    return res.blob();
-  },
 
   // BANK
   getBank: (studentId) => api.get(`/api/bank-details/${studentId}`),

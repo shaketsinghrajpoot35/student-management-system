@@ -10,13 +10,15 @@ FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
 
-# Environment variables with defaults (Render will override these)
+# Environment variables with defaults (Railway/Render will override these)
+ENV SERVER_PORT=${PORT:-8080}
 ENV SPRING_DATASOURCE_URL=jdbc:mysql://localhost:3306/student_management
 ENV SPRING_DATASOURCE_USERNAME=root
 ENV SPRING_DATASOURCE_PASSWORD=
 ENV SPRING_JPA_HIBERNATE_DDL_AUTO=update
-ENV SERVER_PORT=8080
 
-EXPOSE 8080
+# Expose the dynamic port
+EXPOSE ${PORT:-8080}
 
-ENTRYPOINT ["java", "-jar", "app.jar"]
+# Start application with memory optimizations for 512MB RAM
+ENTRYPOINT ["java", "-Xmx384m", "-Xms128m", "-jar", "app.jar", "--server.port=${PORT:-8080}"]

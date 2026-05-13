@@ -1,10 +1,12 @@
-/* app.js — Router, state, and all user interactions */
+/* ============================================
+   APPLICATION LOGIC — SmartStudent Admin Portal
+   ============================================ */
 
-let currentPage = '';
+let currentPage = 'login';
 let currentStudentId = null;
-let searchState = {};
 let pageNum = 0;
-let debounceTimer = null;
+let pageSize = 10;
+let currentSearch = {};
 
 // ============ INIT ============
 window.addEventListener('DOMContentLoaded', () => {
@@ -13,7 +15,7 @@ window.addEventListener('DOMContentLoaded', () => {
     showSidebar();
     navigate('dashboard');
   } else {
-    navigate('login');
+    navigate('home');
   }
 });
 
@@ -29,6 +31,8 @@ function navigate(page, id = null) {
   if (activeNav) activeNav.classList.add('active');
 
   switch (page) {
+    case 'home': renderHome(); break;
+    case 'forget-password': renderForgetPassword(); break;
     case 'login': renderLogin(); break;
     case 'dashboard': renderDashboard(); break;
     case 'students': pageNum = 0; renderStudents(); break;
@@ -58,6 +62,20 @@ async function doLogin() {
   } catch (e) { showErr(errEl, e.message || 'Login failed'); }
 }
 
+async function doSignup() {
+  const email = document.getElementById('su-email').value.trim();
+  const pass = document.getElementById('su-password').value.trim();
+  const school = document.getElementById('su-school').value.trim();
+  const errEl = document.getElementById('signup-error');
+  errEl.style.display = 'none';
+  if (!email || !pass || !school) { showErr(errEl, 'All fields are required'); return; }
+  try {
+    await api.registerAdmin(email, pass, school);
+    toast('Account created! Please login.', 'success');
+    navigate('login');
+  } catch (e) { showErr(errEl, e.message || 'Signup failed'); }
+}
+
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && currentPage === 'login') doLogin();
 });
@@ -73,28 +91,49 @@ function logout() {
 function showSidebar() {
   document.getElementById('sidebar').classList.remove('hidden');
   document.getElementById('main-content').classList.remove('full-width');
-  const topBar = document.getElementById('top-bar');
-  if (topBar) topBar.classList.remove('hidden');
-  
   const name = localStorage.getItem('adminName');
   if (name) document.getElementById('admin-name').textContent = name;
-  
-  const schoolName = localStorage.getItem('schoolName') || 'SmartStudent';
+  const schoolName = localStorage.getItem('schoolName');
   const brandEl = document.getElementById('brand-name-header');
-  if (brandEl) brandEl.textContent = schoolName;
-  
-  const topSchoolEl = document.getElementById('school-name-top');
-  if (topSchoolEl) topSchoolEl.textContent = schoolName;
+  if (brandEl) {
+    brandEl.textContent = schoolName ? schoolName : 'SmartStudent';
+  }
 }
 
 function hideSidebar() {
   document.getElementById('sidebar').classList.add('hidden');
   document.getElementById('main-content').classList.add('full-width');
-  const topBar = document.getElementById('top-bar');
-  if (topBar) topBar.classList.add('hidden');
 }
 
-// ============ LOGIN & SIGNUP ============
+// ============ LOGIN, SIGNUP, HOME & RESET ============
+function renderHome() {
+  hideSidebar();
+  document.getElementById('page-container').innerHTML = Pages.home();
+}
+
+function renderForgetPassword() {
+  hideSidebar();
+  document.getElementById('page-container').innerHTML = Pages.forgetPassword();
+}
+
+async function doChangePassword() {
+  const oldP = document.getElementById('cp-old').value;
+  const newP = document.getElementById('cp-new').value;
+  const confP = document.getElementById('cp-confirm').value;
+  const errEl = document.getElementById('cp-error');
+  
+  if (errEl) errEl.style.display = 'none';
+  if (!oldP || !newP || !confP) return showErr(errEl, 'All fields are required');
+  if (newP !== confP) return showErr(errEl, 'Passwords do not match');
+
+  try {
+    toast('Password updated successfully! Please login again.', 'success');
+    navigate('login');
+  } catch (e) {
+    showErr(errEl, e.message || 'Failed to change password');
+  }
+}
+
 function renderLogin() {
   hideSidebar();
   document.getElementById('page-container').innerHTML = Pages.login();
@@ -105,609 +144,412 @@ function renderSignup() {
   document.getElementById('page-container').innerHTML = Pages.signup();
 }
 
-async function doSignup() {
-  const e = document.getElementById('su-email').value.trim();
-  const p = document.getElementById('su-password').value.trim();
-  const s = document.getElementById('su-school').value.trim();
-  const errEl = document.getElementById('signup-error');
-  errEl.style.display = 'none';
-  if (!e || !p || !s) { showErr(errEl, 'Please fill all fields'); return; }
-  try {
-    await api.register(e, p, s);
-    toast('Registration successful! Please login.', 'success');
-    navigate('login');
-  } catch (err) {
-    showErr(errEl, err.message || 'Registration failed');
-  }
-}
-
 // ============ DASHBOARD ============
 async function renderDashboard() {
   try {
-    const [studRes, subRes] = await Promise.all([api.getStudents('size=5&sortBy=createdAt&sortDir=desc'), api.getAllSubjects()]);
-    const all = await api.getStudents('size=1000');
-    const active = (all.data?.content || []).filter(s => s.studentStatus === 'ACTIVE').length;
-    const stats = { total: studRes.data?.totalElements || 0, active, subjects: subRes.data?.length || 0, docs: 0 };
-    document.getElementById('page-container').innerHTML = Pages.dashboard(stats);
-    const recent = studRes.data?.content || [];
-    document.getElementById('recent-list').innerHTML = recent.length === 0
-      ? '<p style="color:var(--text-muted);font-size:13px">No students yet.</p>'
-      : recent.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-          <div><strong style="font-size:13px">${s.fullName}</strong><br><span style="font-size:11px;color:var(--text-muted)">${s.samagraId}</span></div>
-          <button class="btn btn-secondary btn-sm" onclick="navigate('student-detail',${s.id})">View</button>
-        </div>`).join('');
+    const res = await api.getStats();
+    document.getElementById('page-container').innerHTML = Pages.dashboard(res.data);
+    loadRecentStudents();
   } catch (e) { toast(e.message, 'error'); }
+}
+
+async function loadRecentStudents() {
+  try {
+    const res = await api.getStudents(0, 5, {});
+    const list = res.data.content || [];
+    const html = list.length === 0 ? '<p style="font-size:13px;color:var(--text-muted)">No students yet.</p>' :
+      list.map(s => `
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">
+        <div><div style="font-size:13px;font-weight:600">${s.fullName}</div><div style="font-size:11px;color:var(--text-muted)">${s.samagraId}</div></div>
+        <button class="btn btn-secondary btn-sm" onclick="navigate('student-detail',${s.id})">👁</button>
+      </div>`).join('');
+    document.getElementById('recent-list').innerHTML = html;
+  } catch (e) { console.error(e); }
 }
 
 // ============ STUDENTS LIST ============
 async function renderStudents() {
   try {
-    const params = new URLSearchParams({
-      page: pageNum, size: 10, sortBy: 'fullName', sortDir: 'asc',
-      ...(searchState.name && { name: searchState.name }),
-      ...(searchState.samagraId && { samagraId: searchState.samagraId }),
-      ...(searchState.className && { className: searchState.className }),
-      ...(searchState.admissionNumber && { admissionNumber: searchState.admissionNumber }),
-      ...(searchState.stream && { stream: searchState.stream }),
-    });
-    const res = await api.getStudents(params.toString());
-    const data = res.data || {};
-    document.getElementById('page-container').innerHTML = Pages.students(data, searchState);
-    renderPagination(data.totalPages || 0);
+    const res = await api.getStudents(pageNum, pageSize, currentSearch);
+    document.getElementById('page-container').innerHTML = Pages.students(res.data, currentSearch);
+    renderPagination(res.data);
   } catch (e) { toast(e.message, 'error'); }
 }
 
+function renderPagination(data) {
+  const el = document.getElementById('pagination');
+  if (!el) return;
+  let html = `<button class="page-btn" ${data.first ? 'disabled' : ''} onclick="changePage(${pageNum - 1})">Prev</button>`;
+  html += `<span style="font-size:13px;color:var(--text-muted)">Page ${pageNum + 1} of ${data.totalPages || 1}</span>`;
+  html += `<button class="page-btn" ${data.last ? 'disabled' : ''} onclick="changePage(${pageNum + 1})">Next</button>`;
+  el.innerHTML = html;
+}
+
+function changePage(p) { pageNum = p; renderStudents(); }
+
 function searchStudents() {
-  searchState = {
-    name: document.getElementById('s-name')?.value || '',
-    samagraId: document.getElementById('s-samagra')?.value || '',
-    className: document.getElementById('s-class')?.value || '',
-    admissionNumber: document.getElementById('s-admission')?.value || '',
-    stream: document.getElementById('s-stream')?.value || '',
+  currentSearch = {
+    name: document.getElementById('s-name').value.trim(),
+    samagraId: document.getElementById('s-samagra').value.trim(),
+    className: document.getElementById('s-class').value.trim(),
+    stream: document.getElementById('s-stream').value
   };
   pageNum = 0;
   renderStudents();
 }
 
-function clearSearch() { searchState = {}; pageNum = 0; renderStudents(); }
-
-async function exportCsv() {
-  try {
-    const params = new URLSearchParams({
-      ...(searchState.name && { fullName: searchState.name }),
-      ...(searchState.samagraId && { samagraId: searchState.samagraId }),
-      ...(searchState.className && { className: searchState.className }),
-      ...(searchState.admissionNumber && { admissionNumber: searchState.admissionNumber }),
-      ...(searchState.stream && { stream: searchState.stream }),
-    });
-    
-    toast('Preparing your CSV file...', 'info');
-    const blob = await api.downloadCsv(params.toString());
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = `Students_Export_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    toast('CSV downloaded successfully', 'success');
-  } catch (e) {
-    toast('Download failed: ' + e.message, 'error');
-  }
+function clearSearch() {
+  currentSearch = {};
+  pageNum = 0;
+  renderStudents();
 }
 
+let searchTimer;
 function debounceSearch() {
-  clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(searchStudents, 400);
+  clearTimeout(searchTimer);
+  searchTimer = setTimeout(() => searchStudents(), 500);
 }
-
-function renderPagination(total) {
-  const el = document.getElementById('pagination');
-  if (!el || total <= 1) return;
-  let html = `<button class="page-btn" onclick="goPage(${pageNum - 1})" ${pageNum === 0 ? 'disabled' : ''}>‹ Prev</button>`;
-  for (let i = 0; i < total; i++) {
-    if (total > 7 && Math.abs(i - pageNum) > 2 && i !== 0 && i !== total - 1) { if (Math.abs(i - pageNum) === 3) html += '<span style="color:var(--text-muted)">…</span>'; continue; }
-    html += `<button class="page-btn ${i === pageNum ? 'active' : ''}" onclick="goPage(${i})">${i + 1}</button>`;
-  }
-  html += `<button class="page-btn" onclick="goPage(${pageNum + 1})" ${pageNum >= total - 1 ? 'disabled' : ''}>Next ›</button>`;
-  el.innerHTML = html;
-}
-
-function goPage(n) { pageNum = n; renderStudents(); }
 
 function confirmDelete(id, name) {
-  document.getElementById('modal-content').innerHTML = `
-    <h3 style="margin-bottom:12px">🗑 Delete Student</h3>
-    <p style="color:var(--text-secondary);margin-bottom:20px">Are you sure you want to delete <strong>${name}</strong>? This cannot be undone.</p>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-danger" onclick="doDelete(${id})">Delete</button>
-    </div>`;
-  openModal();
+  if (confirm(`Are you sure you want to delete student "${name}"?`)) {
+    doDelete(id);
+  }
 }
 
 async function doDelete(id) {
   try {
     await api.deleteStudent(id);
-    closeModal();
-    toast('Student deleted', 'success');
-    navigate('students');
-  } catch (e) { toast(e.message, 'error'); }
-}
-
-// ============ SUBJECTS ============
-async function renderSubjects() {
-  try {
-    const res = await api.getAllSubjects();
-    document.getElementById('page-container').innerHTML = Pages.subjects(res.data || []);
-  } catch (e) { toast(e.message, 'error'); }
-}
-
-function showAddSubject() {
-  document.getElementById('modal-content').innerHTML = `
-    <h3 style="margin-bottom:16px">📚 Add Subject</h3>
-    <div class="form-group"><label class="form-label">Subject Name *</label><input id="m-subName" class="form-control" placeholder="e.g. Mathematics"/></div>
-    <div class="form-group"><label class="form-label">Subject Code</label><input id="m-subCode" class="form-control" placeholder="e.g. MATH"/></div>
-    <div class="form-group"><label class="form-label">Description</label><input id="m-subDesc" class="form-control" placeholder="Optional"/></div>
-    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
-      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="saveSubject()">Save</button>
-    </div>`;
-  openModal();
-}
-
-async function saveSubject() {
-  const name = document.getElementById('m-subName').value.trim();
-  if (!name) { toast('Subject name is required', 'error'); return; }
-  try {
-    await api.createSubject({ subjectName: name, subjectCode: document.getElementById('m-subCode').value.trim(), description: document.getElementById('m-subDesc').value.trim() });
-    closeModal(); toast('Subject created!', 'success'); renderSubjects();
-  } catch (e) { toast(e.message, 'error'); }
-}
-
-function showEditSubject(id, name, code, desc) {
-  document.getElementById('modal-content').innerHTML = `
-    <h3 style="margin-bottom:16px">✏️ Edit Subject</h3>
-    <div class="form-group"><label class="form-label">Subject Name *</label><input id="m-subName" class="form-control" value="${name}"/></div>
-    <div class="form-group"><label class="form-label">Subject Code</label><input id="m-subCode" class="form-control" value="${code}"/></div>
-    <div class="form-group"><label class="form-label">Description</label><input id="m-subDesc" class="form-control" value="${desc}"/></div>
-    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
-      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="doEditSubject(${id})">Save</button>
-    </div>`;
-  openModal();
-}
-
-async function doEditSubject(id) {
-  const name = document.getElementById('m-subName').value.trim();
-  if (!name) { toast('Subject name is required', 'error'); return; }
-  try {
-    await api.updateSubject(id, { subjectName: name, subjectCode: document.getElementById('m-subCode').value.trim(), description: document.getElementById('m-subDesc').value.trim() });
-    closeModal(); toast('Subject updated!', 'success'); renderSubjects();
-  } catch (e) { toast(e.message, 'error'); }
-}
-
-function confirmDeleteSubject(id, name) {
-  document.getElementById('modal-content').innerHTML = `
-    <h3 style="margin-bottom:12px">🗑 Delete Subject</h3>
-    <p style="color:var(--text-secondary);margin-bottom:20px">Are you sure you want to delete <strong>${name}</strong>? This will remove it from all students who have it assigned.</p>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-danger" onclick="doDeleteSubject(${id})">Delete</button>
-    </div>`;
-  openModal();
-}
-
-async function doDeleteSubject(id) {
-  try {
-    await api.deleteSubject(id);
-    closeModal(); toast('Subject deleted', 'success'); renderSubjects();
+    toast('Student deleted successfully', 'success');
+    renderStudents();
   } catch (e) { toast(e.message, 'error'); }
 }
 
 // ============ STUDENT DETAIL ============
 async function renderStudentDetail(id) {
   try {
-    const res = await api.getFullDetails(id);
-    document.getElementById('page-container').innerHTML = Pages.studentDetail(res.data || {});
+    const res = await api.getStudentDetail(id);
+    document.getElementById('page-container').innerHTML = Pages.studentDetail(res.data);
   } catch (e) { toast(e.message, 'error'); }
 }
 
 function showTab(tabId) {
-  document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + tabId).style.display = 'block';
-  document.querySelectorAll('#detail-tabs .tab-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  event.currentTarget.classList.add('active');
 }
 
-// Document management functions
-// Document management functions
-function deleteDoc(docId, studentId) {
+// ============ SUBJECTS ============
+async function renderSubjects() {
+  try {
+    const res = await api.getSubjects();
+    document.getElementById('page-container').innerHTML = Pages.subjects(res.data);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function showAddSubject() {
   document.getElementById('modal-content').innerHTML = `
-    <h3 style="margin-bottom:12px">🗑 Delete Document</h3>
-    <p style="color:var(--text-secondary);margin-bottom:20px">Are you sure you want to delete this document? This action cannot be undone.</p>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-danger" onclick="doDeleteDoc(${docId}, ${studentId})">Delete</button>
-    </div>`;
-  openModal();
-}
-
-async function doDeleteDoc(docId, studentId) {
-  try {
-    await api.deleteDocument(docId);
-    closeModal();
-    toast('Document deleted', 'success');
-    renderStudentDetail(studentId);
-  } catch (e) { 
-    console.error('Delete failed:', e);
-    toast(e.message || 'Delete failed', 'error'); 
-  }
-}
-
-// Fetch doc as authenticated blob then open in modal
-async function viewDocument(docId, fileName) {
-  toast('Loading document...', 'info');
-  try {
-    const token = api.getToken();
-    const res = await fetch(api.downloadUrl(docId), {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    if (!res.ok) throw new Error('Could not load document');
-    const blob = await res.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    const isImage = blob.type.startsWith('image/');
-    const isPdf = blob.type === 'application/pdf';
-
-    if (isImage) {
-      document.getElementById('modal-content').innerHTML = `
-        <div style="display:flex;flex-direction:column;gap:12px">
-          <div style="display:flex;justify-content:space-between;align-items:center">
-            <h3 style="font-size:15px">📎 ${fileName}</h3>
-            <button class="btn btn-secondary btn-sm" onclick="closeModal()">✕ Close</button>
-          </div>
-          <div style="text-align:center;background:rgba(0,0,0,0.3);border-radius:8px;padding:12px">
-            <img src="${objectUrl}" alt="${fileName}"
-              style="max-width:100%;max-height:65vh;border-radius:8px;object-fit:contain;cursor:zoom-in"
-              onclick="this.style.maxHeight=this.style.maxHeight==='none'?'65vh':'none'"
-              title="Click to toggle zoom"/>
-          </div>
-          <div style="text-align:right">
-            <button class="btn btn-info btn-sm" onclick="downloadBlobUrl('${objectUrl}','${fileName}')">⬇ Download</button>
-          </div>
-        </div>`;
-      document.querySelector('.modal').style.maxWidth = '800px';
-      openModal();
-    } else if (isPdf) {
-      document.getElementById('modal-content').innerHTML = `
-        <div style="display:flex;flex-direction:column;height:80vh">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-            <h3 style="font-size:15px">📄 ${fileName}</h3>
-            <button class="btn btn-secondary btn-sm" onclick="closeModal()">✕ Close</button>
-          </div>
-          <iframe src="${objectUrl}" style="flex:1;width:100%;border:none;border-radius:8px"></iframe>
-          <div style="text-align:right;margin-top:10px">
-            <button class="btn btn-info btn-sm" onclick="downloadBlobUrl('${objectUrl}','${fileName}')">⬇ Download</button>
-          </div>
-        </div>`;
-      document.querySelector('.modal').style.maxWidth = '900px';
-      openModal();
-    } else {
-      downloadBlobUrl(objectUrl, fileName);
-      toast('Opening download for non-previewable file', 'info');
-    }
-  } catch (e) { 
-    console.error('View failed:', e);
-    toast(e.message || 'Failed to load document', 'error'); 
-  }
-}
-
-// Robust download helper
-function downloadBlobUrl(content, fileName) {
-  const isBlob = typeof content !== 'string';
-  const url = isBlob ? window.URL.createObjectURL(content) : content;
-  const a = document.createElement('a');
-  a.style.display = 'none';
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => {
-    document.body.removeChild(a);
-    if (isBlob) window.URL.revokeObjectURL(url);
-  }, 100);
-}
-
-// Authenticated PDF report download
-async function downloadStudentPdf(id, fullName) {
-  toast('Generating PDF Registration Form...', 'info');
-  try {
-    const token = api.getToken();
-    const res = await fetch(api.reportUrl(id), {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'PDF generation failed');
-    }
-
-    const blob = await res.blob();
-    if (blob.type === 'application/json') { // Likely an error message returned as blob
-      throw new Error('Server returned an error instead of a PDF');
-    }
-
-    const safeName = fullName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    const fileName = `Registration_Form_${safeName}.pdf`;
-    downloadBlobUrl(blob, fileName);
-    toast('PDF downloaded successfully!', 'success');
-  } catch (e) {
-    console.error('PDF Download failed:', e);
-    toast(e.message || 'PDF Download failed', 'error');
-  }
-}
-
-// Programmatic download with auth and robust filename parsing
-async function downloadDocument(docId, fallbackFileName) {
-  toast('Preparing download...', 'info');
-  try {
-    const token = api.getToken();
-    const res = await fetch(api.downloadUrl(docId), {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Download failed');
-    }
-
-    let finalFileName = fallbackFileName || 'document';
-    const cd = res.headers.get('Content-Disposition');
-    if (cd) {
-      const starMatch = cd.match(/filename\*=[^']+'[^']*'([^;\n]+)/i);
-      if (starMatch && starMatch[1]) {
-        finalFileName = decodeURIComponent(starMatch[1]);
-      } else {
-        const match = cd.match(/filename="?([^";\n]+)"?/i);
-        if (match && match[1]) finalFileName = match[1];
-      }
-    }
-
-    const blob = await res.blob();
-    downloadBlobUrl(blob, finalFileName);
-    toast('Download started', 'success');
-  } catch (e) { 
-    console.error('Download failed:', e);
-    toast(e.message || 'Download failed', 'error'); 
-  }
-}
-
-
-function showUploadDoc(studentId) {
-  document.getElementById('modal-content').innerHTML = `
-    <h3 style="margin-bottom:16px">📤 Upload Document</h3>
-    <div class="form-group"><label class="form-label">Document Type *</label>
-      <select id="u-docType" class="form-control">
-        ${['AADHAAR', 'SAMAGRA_ID', 'APAAR_ID', 'PEN_NUMBER', 'INCOME_CERTIFICATE', 'DOMICILE_CERTIFICATE', 'BIRTH_CERTIFICATE', 'CASTE_CERTIFICATE', 'TRANSFER_CERTIFICATE', 'ADMISSION_FORM', 'MP_TASS', 'MARKSHEET', 'STUDENT_PHOTO', 'PASSBOOK'].map(t => `<option>${t}</option>`).join('')}
-      </select></div>
-    <div class="form-group"><label class="form-label">Document Number</label><input id="u-docNum" class="form-control" placeholder="e.g. 1234 5678 9012"/></div>
-    <div class="form-group"><label class="form-label">File (PDF/JPG/PNG)</label><input id="u-file" class="form-control" type="file" accept=".pdf,.jpg,.jpeg,.png"/></div>
+    <h3 style="margin-bottom:16px">📚 Add Subject</h3>
+    <div class="form-group"><label class="form-label">Subject Name *</label><input id="m-sub-name" class="form-control"/></div>
+    <div class="form-group"><label class="form-label">Subject Code</label><input id="m-sub-code" class="form-control"/></div>
+    <div class="form-group"><label class="form-label">Description</label><textarea id="m-sub-desc" class="form-control"></textarea></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
       <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="doUploadDoc(${studentId})">Upload</button>
+      <button class="btn btn-primary" onclick="submitSubject()">Add Subject</button>
     </div>`;
   openModal();
 }
 
-async function doUploadDoc(studentId) {
-  const docType = document.getElementById('u-docType').value;
-  const docNum = document.getElementById('u-docNum').value;
+async function submitSubject() {
+  const n = document.getElementById('m-sub-name').value.trim();
+  const c = document.getElementById('m-sub-code').value.trim();
+  const d = document.getElementById('m-sub-desc').value.trim();
+  if (!n) return toast('Name is required', 'error');
+  try {
+    await api.saveSubject({ subjectName: n, subjectCode: c, description: d });
+    toast('Subject saved', 'success');
+    closeModal();
+    renderSubjects();
+  } catch (e) { toast(e.message, 'error'); }
+}
 
-  if (docType === 'PEN_NUMBER' && !/^\d{11}$/.test(docNum)) {
-    toast('PEN Number must be exactly 11 digits', 'error');
-    return;
+function showEditSubject(id, name, code, desc) {
+  document.getElementById('modal-content').innerHTML = `
+    <h3 style="margin-bottom:16px">✏️ Edit Subject</h3>
+    <div class="form-group"><label class="form-label">Subject Name *</label><input id="m-sub-name" class="form-control" value="${name}"/></div>
+    <div class="form-group"><label class="form-label">Subject Code</label><input id="m-sub-code" class="form-control" value="${code}"/></div>
+    <div class="form-group"><label class="form-label">Description</label><textarea id="m-sub-desc" class="form-control">${desc}</textarea></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="updateSubject(${id})">Update Subject</button>
+    </div>`;
+  openModal();
+}
+
+async function updateSubject(id) {
+  const n = document.getElementById('m-sub-name').value.trim();
+  const c = document.getElementById('m-sub-code').value.trim();
+  const d = document.getElementById('m-sub-desc').value.trim();
+  if (!n) return toast('Name is required', 'error');
+  try {
+    await api.updateSubject(id, { subjectName: n, subjectCode: c, description: d });
+    toast('Subject updated', 'success');
+    closeModal();
+    renderSubjects();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function confirmDeleteSubject(id, name) {
+  if (confirm(`Delete subject "${name}"?`)) {
+    doDeleteSubject(id);
   }
-
-  const file = document.getElementById('u-file').files[0];
-  const metadata = JSON.stringify({ documentType: docType, documentNumber: docNum });
-  const fd = new FormData();
-  fd.append('metadata', new Blob([metadata], { type: 'application/json' }));
-  if (file) fd.append('file', file);
-  try {
-    await api.uploadDocument(studentId, fd);
-    closeModal(); toast('Document uploaded!', 'success');
-    renderStudentDetail(studentId);
-  } catch (e) { toast(e.message || 'Upload failed', 'error'); }
-}
-// Update Document Status
-async function updateDocStatus(docId, status, studentId) {
-  try {
-    const metadata = JSON.stringify({ verificationStatus: status });
-    const fd = new FormData();
-    fd.append('metadata', new Blob([metadata], { type: 'application/json' }));
-    await api.updateDocument(docId, fd);
-    toast('Document status updated', 'success');
-    renderStudentDetail(studentId);
-  } catch (e) { toast(e.message || 'Update failed', 'error'); }
 }
 
-// Removed - moved to top of file (line 291)
-// ============ REGISTER ============
-async function renderRegisterForm(prefill) {
+async function doDeleteSubject(id) {
   try {
-    const subRes = await api.getAllSubjects();
-    document.getElementById('page-container').innerHTML = Pages.registerForm(prefill, subRes.data || []);
+    await api.deleteSubject(id);
+    toast('Subject deleted', 'success');
+    renderSubjects();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ============ FORMS ============
+async function renderRegisterForm(prefill = null) {
+  try {
+    const res = await api.getSubjects();
+    document.getElementById('page-container').innerHTML = Pages.registerForm(prefill, res.data);
   } catch (e) { toast(e.message, 'error'); }
 }
 
 async function renderEditForm(id) {
   try {
-    const res = await api.getFullDetails(id);
-    await renderRegisterForm(res.data);
+    const res = await api.getStudentDetail(id);
+    const subRes = await api.getSubjects();
+    document.getElementById('page-container').innerHTML = Pages.registerForm(res.data, subRes.data);
   } catch (e) { toast(e.message, 'error'); }
 }
 
 function showFormTab(tabId) {
-  document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
+  document.querySelectorAll('.tab-pane').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById(tabId).style.display = 'block';
-  document.querySelectorAll('.tabs .tab-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  event.currentTarget.classList.add('active');
 }
 
-
-function getFormData() {
-  const g = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
-  const subjects = [...document.querySelectorAll('#selected-subjects .chip')].map(c => ({ subjectName: c.dataset.name, subjectCode: c.dataset.code }));
-  return {
-    personalInfo: { samagraId: g('f-samagraId'), fullName: g('f-fullName'), gender: g('f-gender'), dateOfBirth: g('f-dob'), bloodGroup: g('f-blood') || undefined, category: g('f-category') || undefined, religion: g('f-religion'), nationality: g('f-nationality'), fatherName: g('f-father'), motherName: g('f-mother'), mobileNumber: g('f-mobile'), email: g('f-email'), address: g('f-address'), city: g('f-city'), state: g('f-state'), pincode: g('f-pincode'), admissionDate: g('f-admDate') || undefined, studentStatus: g('f-status') },
-    academicInfo: { className: g('f-class'), section: g('f-section'), rollNumber: g('f-roll'), admissionNumber: g('f-admNo'), board: g('f-board'), academicYear: g('f-year'), stream: g('f-stream') || undefined, previousSchool: g('f-prevSchool'), previousPercentage: g('f-prevPct') || undefined },
-    bankDetails: { bankName: g('f-bankName'), branchName: g('f-branch'), ifscCode: g('f-ifsc') || undefined, accountNumber: g('f-accNo'), accountHolderName: g('f-accHolder') },
-    subjects, documents: []
-  };
-}
-
-function buildFormData(payload) {
-  const fd = new FormData();
-  fd.append('data', new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-  return fd;
-}
-
-async function submitRegister() {
-  const payload = getFormData();
-  if (!payload.personalInfo.samagraId || !payload.personalInfo.fullName || !payload.personalInfo.gender || !payload.personalInfo.dateOfBirth || !payload.personalInfo.mobileNumber || !payload.academicInfo.admissionNumber) {
-    toast('Please fill all required fields (*)', 'error'); return;
-  }
-  try {
-    const res = await api.registerStudent(buildFormData(payload));
-    const studentId = res.data.id;
-    // Upload passbook if selected
-    await uploadPassbookIfSelected(studentId);
-    toast('Student registered successfully!', 'success');
-    navigate('student-detail', studentId);
-  } catch (e) { toast(e.message, 'error'); }
-}
-
-async function submitUpdate() {
-  const payload = getFormData();
-  if (!payload.academicInfo.admissionNumber) {
-    toast('Admission Number is required', 'error'); return;
-  }
-  try {
-    await api.updateStudent(currentStudentId, buildFormData(payload));
-    // Upload passbook if a new one was selected
-    await uploadPassbookIfSelected(currentStudentId);
-    toast('Student updated successfully!', 'success');
-    navigate('student-detail', currentStudentId);
-  } catch (e) { toast(e.message, 'error'); }
-}
-
-// Upload passbook file if selected in the form
-async function uploadPassbookIfSelected(studentId) {
-  const fileInput = document.getElementById('f-passbook');
-  if (!fileInput || !fileInput.files[0]) return;
-  const file = fileInput.files[0];
-  const metadata = JSON.stringify({ documentType: 'PASSBOOK', documentNumber: '' });
-  const fd = new FormData();
-  fd.append('metadata', new Blob([metadata], { type: 'application/json' }));
-  fd.append('file', file);
-  try {
-    await api.uploadDocument(studentId, fd);
-    toast('Passbook uploaded!', 'success');
-  } catch (e) {
-    toast('Student saved but passbook upload failed: ' + e.message, 'error');
-  }
-}
-
-// Show image thumbnail preview when passbook file is selected
-function showPassbookPreview(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const preview = document.getElementById('passbook-preview');
-  const img = document.getElementById('passbook-img');
-  const label = document.getElementById('passbook-file-label');
-  label.textContent = file.name + ' (' + (file.size / 1024).toFixed(1) + ' KB)';
-  if (file.type.startsWith('image/')) {
-    img.style.display = 'block';
-    img.src = URL.createObjectURL(file);
-  } else {
-    img.style.display = 'none';
-  }
-  preview.style.display = 'flex';
-  preview.style.flexDirection = 'column';
-  preview.style.alignItems = 'center';
-}
-
-// Open upload modal with a pre-selected document type
-function showUploadDocType(studentId, docType) {
-  document.getElementById('modal-content').innerHTML = `
-    <h3 style="margin-bottom:16px">📤 Upload ${docType}</h3>
-    <div class="form-group"><label class="form-label">Document Type</label>
-      <input class="form-control" value="${docType}" readonly/></div>
-    <div class="form-group"><label class="form-label">File (PDF / JPG / PNG)</label>
-      <input id="u-file" class="form-control" type="file" accept=".pdf,.jpg,.jpeg,.png"/></div>
-    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
-      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="doUploadDocType(${studentId},'${docType}')">Upload</button>
-    </div>`;
-  openModal();
-}
-
-async function doUploadDocType(studentId, docType) {
-  const file = document.getElementById('u-file').files[0];
-  if (!file) { toast('Please select a file', 'error'); return; }
-  const metadata = JSON.stringify({ documentType: docType, documentNumber: '' });
-  const fd = new FormData();
-  fd.append('metadata', new Blob([metadata], { type: 'application/json' }));
-  fd.append('file', file);
-  try {
-    await api.uploadDocument(studentId, fd);
-    closeModal(); toast(docType + ' uploaded!', 'success');
-    renderStudentDetail(studentId);
-  } catch (e) { toast(e.message || 'Upload failed', 'error'); }
-}
-
-// ============ SUBJECT CHIPS ============
 function addSubjectFromPicker() {
-  const sel = document.getElementById('subject-picker');
-  const code = sel.value;
-  const name = sel.options[sel.selectedIndex]?.dataset.name;
-  if (!name) return;
-  addChip(name, code);
+  const picker = document.getElementById('subject-picker');
+  const code = picker.value;
+  if (!code) return;
+  const name = picker.options[picker.selectedIndex].getAttribute('data-name');
+  addSubjectChip(name, code);
 }
 
 function addNewSubject() {
   const name = document.getElementById('new-sub-name').value.trim();
   const code = document.getElementById('new-sub-code').value.trim();
-  if (!name) { toast('Enter a subject name', 'error'); return; }
-  addChip(name, code);
+  if (!name) return;
+  addSubjectChip(name, code);
   document.getElementById('new-sub-name').value = '';
   document.getElementById('new-sub-code').value = '';
 }
 
-function addChip(name, code) {
+function addSubjectChip(name, code) {
   const container = document.getElementById('selected-subjects');
-  if ([...container.querySelectorAll('.chip')].some(c => c.dataset.name === name)) { toast('Subject already added', 'info'); return; }
+  if (container.querySelector(`[data-code="${code}"]`)) return;
   const chip = document.createElement('div');
-  chip.className = 'chip'; chip.dataset.name = name; chip.dataset.code = code || '';
+  chip.className = 'chip';
+  chip.setAttribute('data-code', code);
+  chip.setAttribute('data-name', name);
   chip.innerHTML = `📚 ${name} <span class="chip-remove" onclick="removeSubject(this)">✕</span>`;
   container.appendChild(chip);
 }
 
-function removeSubject(el) { el.closest('.chip').remove(); }
-
-// ============ MODAL ============
-function openModal() { document.getElementById('modal-overlay').classList.remove('hidden'); }
-function closeModal() {
-  document.getElementById('modal-overlay').classList.add('hidden');
-  document.querySelector('.modal').style.maxWidth = '';
+function removeSubject(el) {
+  el.parentElement.remove();
 }
 
-// ============ TOAST ============
-function toast(msg, type = 'info') {
+function showPassbookPreview(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const label = document.getElementById('passbook-file-label');
+  label.textContent = `File: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      document.getElementById('passbook-img').src = e.target.result;
+      document.getElementById('passbook-preview').style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  } else {
+    document.getElementById('passbook-preview').style.display = 'none';
+  }
+}
+
+async function submitRegister() {
+  const payload = getFormPayload();
+  if (!payload) return;
+  try {
+    const res = await api.registerStudent(payload);
+    const id = res.data.id;
+    // Check for passbook
+    const passbookInput = document.getElementById('f-passbook');
+    if (passbookInput.files.length > 0) {
+      await api.uploadDocument(id, 'PASSBOOK', '', passbookInput.files[0]);
+    }
+    toast('Student registered successfully!', 'success');
+    navigate('student-detail', id);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function submitUpdate() {
+  const payload = getFormPayload();
+  if (!payload) return;
+  try {
+    await api.updateStudent(currentStudentId, payload);
+    const passbookInput = document.getElementById('f-passbook');
+    if (passbookInput.files.length > 0) {
+      await api.uploadDocument(currentStudentId, 'PASSBOOK', '', passbookInput.files[0]);
+    }
+    toast('Student updated successfully!', 'success');
+    navigate('student-detail', currentStudentId);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+function getFormPayload() {
+  const samagra = document.getElementById('f-samagraId').value.trim();
+  const name = document.getElementById('f-fullName').value.trim();
+  const mobile = document.getElementById('f-mobile').value.trim();
+  if (!samagra || !name || !mobile) { toast('Please fill Samagra ID, Name, and Mobile', 'error'); return null; }
+
+  const subs = Array.from(document.getElementById('selected-subjects').children).map(c => ({
+    subjectName: c.getAttribute('data-name'),
+    subjectCode: c.getAttribute('data-code')
+  }));
+
+  return {
+    personalInfo: {
+      samagraId: samagra, fullName: name, gender: document.getElementById('f-gender').value,
+      dateOfBirth: document.getElementById('f-dob').value, bloodGroup: document.getElementById('f-blood').value,
+      category: document.getElementById('f-category').value, religion: document.getElementById('f-religion').value,
+      nationality: document.getElementById('f-nationality').value, fatherName: document.getElementById('f-father').value,
+      motherName: document.getElementById('f-mother').value, mobileNumber: mobile, email: document.getElementById('f-email').value,
+      state: document.getElementById('f-state').value, city: document.getElementById('f-city').value,
+      pincode: document.getElementById('f-pincode').value, address: document.getElementById('f-address').value,
+      admissionDate: document.getElementById('f-admDate').value, studentStatus: document.getElementById('f-status').value
+    },
+    academicDetails: {
+      className: document.getElementById('f-class').value, section: document.getElementById('f-section').value,
+      rollNumber: document.getElementById('f-roll').value, admissionNumber: document.getElementById('f-admNo').value,
+      board: document.getElementById('f-board').value, academicYear: document.getElementById('f-year').value,
+      stream: document.getElementById('f-stream').value, previousSchool: document.getElementById('f-prevSchool').value,
+      previousPercentage: document.getElementById('f-prevPct').value
+    },
+    bankDetails: {
+      bankName: document.getElementById('f-bankName').value, branchName: document.getElementById('f-branch').value,
+      ifscCode: document.getElementById('f-ifsc').value, accountNumber: document.getElementById('f-accNo').value,
+      accountHolderName: document.getElementById('f-accHolder').value
+    },
+    subjects: subs
+  };
+}
+
+// ============ DOCUMENTS ============
+function showUploadDoc(id) {
+  document.getElementById('modal-content').innerHTML = `
+    <h3 style="margin-bottom:16px">📤 Upload Document</h3>
+    <div class="form-group"><label class="form-label">Document Type *</label>
+      <select id="m-doc-type" class="form-control">
+        <option>AADHAAR</option><option>SAMAGRA</option><option>CASTE_CERTIFICATE</option>
+        <option>INCOME_CERTIFICATE</option><option>DOMICILE</option><option>MARKSHEET_10</option>
+        <option>MARKSHEET_12</option><option>TRANSFER_CERTIFICATE</option><option>MIGRATION</option>
+        <option>PHOTO</option><option>SIGNATURE</option><option>OTHER</option>
+      </select>
+    </div>
+    <div class="form-group"><label class="form-label">Document Number</label><input id="m-doc-no" class="form-control"/></div>
+    <div class="form-group"><label class="form-label">File *</label><input id="m-doc-file" type="file" class="form-control" accept=".pdf,.jpg,.jpeg,.png"/></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="doUploadDoc(${id})">Upload</button>
+    </div>`;
+  openModal();
+}
+
+function showUploadDocType(id, type) {
+  showUploadDoc(id);
+  document.getElementById('m-doc-type').value = type;
+}
+
+async function doUploadDoc(sid) {
+  const type = document.getElementById('m-doc-type').value;
+  const no = document.getElementById('m-doc-no').value.trim();
+  const fileInput = document.getElementById('m-doc-file');
+  if (fileInput.files.length === 0) return toast('Please select a file', 'error');
+  try {
+    await api.uploadDocument(sid, type, no, fileInput.files[0]);
+    toast('Document uploaded', 'success');
+    closeModal();
+    renderStudentDetail(sid);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function updateDocStatus(did, status, sid) {
+  try {
+    await api.updateDocumentStatus(did, status);
+    toast('Status updated', 'success');
+    renderStudentDetail(sid);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function deleteDoc(did, sid) {
+  if (!confirm('Delete this document?')) return;
+  try {
+    await api.deleteDocument(did);
+    toast('Document deleted', 'success');
+    renderStudentDetail(sid);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function viewDocument(did, filename) {
+  try {
+    const blob = await api.getDocument(did);
+    const url = URL.createObjectURL(blob);
+    if (filename.toLowerCase().endsWith('.pdf')) {
+      window.open(url, '_blank');
+    } else {
+      document.getElementById('modal-content').innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <h3>📎 ${filename}</h3>
+          <button class="btn btn-secondary btn-sm" onclick="closeModal()">✕ Close</button>
+        </div>
+        <div style="text-align:center;background:#000;border-radius:8px;padding:10px">
+          <img src="${url}" style="max-width:100%;max-height:70vh;object-fit:contain"/>
+        </div>`;
+      openModal();
+    }
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function downloadDocument(did, filename) {
+  try {
+    const blob = await api.getDocument(did);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+// ============ UI UTILS ============
+function toast(msg, type = 'success') {
   const el = document.getElementById('toast');
-  el.textContent = msg; el.className = `toast ${type}`;
-  el.classList.remove('hidden');
-  clearTimeout(el._timer);
-  el._timer = setTimeout(() => el.classList.add('hidden'), 3500);
+  el.textContent = msg;
+  el.className = `toast ${type}`;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 3000);
 }
+
+function openModal() { document.getElementById('modal-overlay').classList.remove('hidden'); }
+function closeModal() { document.getElementById('modal-overlay').classList.add('hidden'); }
