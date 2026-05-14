@@ -14,6 +14,7 @@ import com.smartstudent.main.util.SecurityUtil;
 import com.smartstudent.main.entity.Admin;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,10 +52,15 @@ public class StudentDocumentServiceImpl implements StudentDocumentService {
         }
 
         if (file != null && !file.isEmpty()) {
-            String filePath = fileStorageUtil.storeFile(
-                    file, studentId, dto.getDocumentType().name());
-            document.setFileName(file.getOriginalFilename());
-            document.setFilePath(filePath);
+            try {
+                fileStorageUtil.validateFile(file);
+                byte[] encryptedData = fileStorageUtil.encryptToByteArray(file.getBytes());
+                document.setFileName(file.getOriginalFilename());
+                document.setFileData(encryptedData);
+            } catch (Exception e) {
+                log.error("Failed to process file upload for student {}", studentId, e);
+                throw new RuntimeException("Could not store file", e);
+            }
         }
 
         return documentMapper.toResponseDTO(documentRepository.save(document));
@@ -86,11 +92,15 @@ public class StudentDocumentServiceImpl implements StudentDocumentService {
 
         // Replace file if provided
         if (file != null && !file.isEmpty()) {
-            fileStorageUtil.deleteFile(document.getFilePath());
-            String filePath = fileStorageUtil.storeFile(
-                    file, document.getStudent().getId(), document.getDocumentType().name());
-            document.setFileName(file.getOriginalFilename());
-            document.setFilePath(filePath);
+            try {
+                fileStorageUtil.validateFile(file);
+                byte[] encryptedData = fileStorageUtil.encryptToByteArray(file.getBytes());
+                document.setFileName(file.getOriginalFilename());
+                document.setFileData(encryptedData);
+            } catch (Exception e) {
+                log.error("Failed to process file update for document ID {}", documentId, e);
+                throw new RuntimeException("Could not update file", e);
+            }
         }
 
         return documentMapper.toResponseDTO(documentRepository.save(document));
@@ -100,7 +110,6 @@ public class StudentDocumentServiceImpl implements StudentDocumentService {
     public void deleteDocument(Long documentId) {
         log.info("Deleting document ID: {}", documentId);
         StudentDocument document = findDocumentById(documentId);
-        fileStorageUtil.deleteFile(document.getFilePath());
         documentRepository.delete(document);
     }
 
@@ -108,7 +117,11 @@ public class StudentDocumentServiceImpl implements StudentDocumentService {
     @Transactional(readOnly = true)
     public Resource downloadDocument(Long documentId) {
         StudentDocument document = findDocumentById(documentId);
-        return fileStorageUtil.loadFileAsResource(document.getFilePath());
+        if (document.getFileData() == null) {
+            throw new ResourceNotFoundException("Document content", "id", documentId);
+        }
+        byte[] decryptedData = fileStorageUtil.decryptFromByteArray(document.getFileData());
+        return new org.springframework.core.io.ByteArrayResource(decryptedData);
     }
 
     @Override

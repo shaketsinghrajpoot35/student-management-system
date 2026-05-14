@@ -19,7 +19,6 @@ public class DocumentResponseDTO {
     private String documentName;
     private String documentNumber;
     private String fileName;
-    private String filePath;
     private LocalDateTime uploadDate;
     private VerificationStatus verificationStatus;
     private String remarks;

@@ -106,10 +106,15 @@ public class StudentServiceImpl implements StudentService {
                 // Attach uploaded file if available
                 if (files != null && i < files.size() && !files.get(i).isEmpty()) {
                     MultipartFile file = files.get(i);
-                    String filePath = fileStorageUtil.storeFile(
-                            file, student.getId(), docDto.getDocumentType().name());
-                    doc.setFileName(file.getOriginalFilename());
-                    doc.setFilePath(filePath);
+                    try {
+                        fileStorageUtil.validateFile(file);
+                        byte[] encryptedData = fileStorageUtil.encryptToByteArray(file.getBytes());
+                        doc.setFileName(file.getOriginalFilename());
+                        doc.setFileData(encryptedData);
+                    } catch (Exception e) {
+                        log.error("Failed to process file upload for student {}", student.getId(), e);
+                        throw new RuntimeException("Could not store file", e);
+                    }
                 }
                 docs.add(doc);
             }
@@ -231,10 +236,15 @@ public class StudentServiceImpl implements StudentService {
                 doc.setStudent(student);
                 if (files != null && i < files.size() && !files.get(i).isEmpty()) {
                     MultipartFile file = files.get(i);
-                    String filePath = fileStorageUtil.storeFile(
-                            file, student.getId(), docDto.getDocumentType().name());
-                    doc.setFileName(file.getOriginalFilename());
-                    doc.setFilePath(filePath);
+                    try {
+                        fileStorageUtil.validateFile(file);
+                        byte[] encryptedData = fileStorageUtil.encryptToByteArray(file.getBytes());
+                        doc.setFileName(file.getOriginalFilename());
+                        doc.setFileData(encryptedData);
+                    } catch (Exception e) {
+                        log.error("Failed to process file update for student {}", student.getId(), e);
+                        throw new RuntimeException("Could not store file", e);
+                    }
                 }
                 documentRepository.save(doc);
             }
@@ -252,9 +262,8 @@ public class StudentServiceImpl implements StudentService {
         log.info("Deleting student with ID: {}", id);
         Student student = findStudentById(id);
 
-        // Delete physical files
-        List<StudentDocument> docs = documentRepository.findByStudentId(id);
-        docs.forEach(doc -> fileStorageUtil.deleteFile(doc.getFilePath()));
+        // StudentDocuments will be deleted by CascadeType.ALL if configured, 
+        // or we can let JPA handle it. The database BLOBs are deleted with the entity.
 
         studentRepository.delete(student);
         log.info("Student deleted: {}", id);

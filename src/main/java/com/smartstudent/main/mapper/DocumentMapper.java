@@ -29,7 +29,6 @@ public class DocumentMapper {
                 .documentName(entity.getDocumentName())
                 .documentNumber(entity.getDocumentNumber())
                 .fileName(entity.getFileName())
-                .filePath(entity.getFilePath())
                 .uploadDate(entity.getUploadDate())
                 .verificationStatus(entity.getVerificationStatus())
                 .remarks(entity.getRemarks())

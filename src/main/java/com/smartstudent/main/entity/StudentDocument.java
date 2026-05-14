@@ -35,8 +35,9 @@ public class StudentDocument {
     @Column(nullable = false, length = 255)
     private String fileName;
 
-    @Column(nullable = false, length = 500)
-    private String filePath;
+    @Lob
+    @Column(columnDefinition = "LONGBLOB")
+    private byte[] fileData;
 
     @CreationTimestamp
     @Column(updatable = false)
