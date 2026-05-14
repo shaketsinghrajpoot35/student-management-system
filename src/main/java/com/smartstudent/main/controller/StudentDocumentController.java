@@ -85,7 +85,7 @@ public class StudentDocumentController {
         String fileName = documentService.getDocumentFileName(id);
 
         ContentDisposition contentDisposition = ContentDisposition.attachment()
-                .filename(fileName, StandardCharsets.UTF_8)
+                .filename(fileName)
                 .build();
 
         return ResponseEntity.ok()

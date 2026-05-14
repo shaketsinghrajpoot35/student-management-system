@@ -24,7 +24,7 @@ public class StudentReportController {
         ByteArrayInputStream bis = studentPdfService.generateStudentRegistrationForm(id);
         
         org.springframework.http.ContentDisposition contentDisposition = org.springframework.http.ContentDisposition.attachment()
-                .filename("student_registration_" + id + ".pdf", java.nio.charset.StandardCharsets.UTF_8)
+                .filename("student_registration_" + id + ".pdf")
                 .build();
         
         return ResponseEntity
@@ -45,7 +45,7 @@ public class StudentReportController {
         ByteArrayInputStream bis = studentExportService.exportStudentsToCsv(name, samagraId, className, admissionNumber, stream);
 
         org.springframework.http.ContentDisposition contentDisposition = org.springframework.http.ContentDisposition.attachment()
-                .filename("students_export.csv", java.nio.charset.StandardCharsets.UTF_8)
+                .filename("students_export.csv")
                 .build();
         
         return ResponseEntity
