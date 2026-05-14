@@ -1,6 +1,7 @@
 package com.smartstudent.main.util;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Cipher;
@@ -13,6 +14,7 @@ import java.security.SecureRandom;
 import java.util.Base64;
 
 @Component
+@Lazy(false) // Must be eager to initialize static keys even when global lazy-init is on
 public class EncryptionUtil {
 
     private static final String ALGORITHM = "AES";
@@ -25,7 +27,9 @@ public class EncryptionUtil {
     // Inject DB Key from application.properties
     @Value("${app.security.db-key}")
     public void setDbKey(String base64Key) {
-        dbKeyBytes = Base64.getDecoder().decode(base64Key);
+        if (base64Key != null) {
+            dbKeyBytes = Base64.getDecoder().decode(base64Key.trim());
+        }
     }
 
     /**

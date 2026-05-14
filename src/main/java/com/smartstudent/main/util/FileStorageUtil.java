@@ -40,7 +40,8 @@ public class FileStorageUtil {
     private String fileKeyBase64;
 
     private byte[] getFileKey() {
-        return Base64.getDecoder().decode(fileKeyBase64);
+        if (fileKeyBase64 == null) return new byte[32]; // Fallback
+        return Base64.getDecoder().decode(fileKeyBase64.trim());
     }
 
 
