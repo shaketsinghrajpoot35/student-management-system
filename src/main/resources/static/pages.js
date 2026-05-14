@@ -5,6 +5,11 @@ const Pages = {
   login: () => `
 <div class="login-page">
   <div class="login-card fade-in">
+    <div class="login-logo">
+      <span class="icon">🎓</span>
+      <h1>SmartStudent</h1>
+      <p>Secure Admin Portal</p>
+    </div>
     <div id="login-error" class="login-error"></div>
     <div class="form-group">
       <label class="form-label">Email or Username</label>
@@ -18,21 +23,17 @@ const Pages = {
     <div style="margin-top:16px;text-align:center;font-size:14px;color:var(--text-muted)">
       Don't have an account? <a href="#" onclick="navigate('signup')" style="color:var(--primary);text-decoration:none;font-weight:500">Sign Up</a>
     </div>
-    <div class="dev-credits" style="margin-top:24px; background:rgba(255,255,255,0.02)">
-      <p>Made with ❤️ by</p>
-      <a href="https://github.com/shaketsinghrajpoot35" target="_blank" class="dev-name">Shaket Singh Rajpoot</a>
-      <div class="dev-socials">
-        <a href="https://github.com/shaketsinghrajpoot35" target="_blank" title="GitHub">🐙</a>
-        <a href="https://www.linkedin.com/in/shaket-singh-rajpoot-702439327/" target="_blank" title="LinkedIn">🔗</a>
-        <a href="https://www.instagram.com/shaket_.singh_rajpoot24?igsh=MWdlODM5dXJqaXNjYg==" target="_blank" title="Instagram">📸</a>
-      </div>
-    </div>
   </div>
 </div>`,
 
   signup: () => `
 <div class="login-page">
   <div class="login-card fade-in">
+    <div class="login-logo">
+      <span class="icon">🎓</span>
+      <h1>SmartStudent</h1>
+      <p>Admin Registration</p>
+    </div>
     <div id="signup-error" class="login-error"></div>
     <div class="form-group">
       <label class="form-label">Email</label>
@@ -49,15 +50,6 @@ const Pages = {
     <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doSignup()">Create Account</button>
     <div style="margin-top:16px;text-align:center;font-size:14px;color:var(--text-muted)">
       Already have an account? <a href="#" onclick="navigate('login')" style="color:var(--primary);text-decoration:none;font-weight:500">Login</a>
-    </div>
-    <div class="dev-credits" style="margin-top:24px; background:rgba(255,255,255,0.02)">
-      <p>Made with ❤️ by</p>
-      <a href="https://github.com/shaketsinghrajpoot35" target="_blank" class="dev-name">Shaket Singh Rajpoot</a>
-      <div class="dev-socials">
-        <a href="https://github.com/shaketsinghrajpoot35" target="_blank" title="GitHub">🐙</a>
-        <a href="https://www.linkedin.com/in/shaket-singh-rajpoot-702439327/" target="_blank" title="LinkedIn">🔗</a>
-        <a href="https://www.instagram.com/shaket_.singh_rajpoot24?igsh=MWdlODM5dXJqaXNjYg==" target="_blank" title="Instagram">📸</a>
-      </div>
     </div>
   </div>
 </div>`,
@@ -94,24 +86,22 @@ const Pages = {
 <div class="fade-in">
   <div class="page-header">
     <div><div class="page-title">Students</div><div class="page-subtitle">${data.totalElements || 0} students found</div></div>
-    <button class="btn btn-primary" onclick="navigate('register')">➕ Register Student</button>
+    <div>
+      <button class="btn btn-secondary" onclick="exportStudentsCsv()">📥 Export CSV</button>
+      <button class="btn btn-primary" onclick="navigate('register')">➕ Register Student</button>
+    </div>
   </div>
   <div class="card">
     <div class="search-row">
       <input id="s-name" class="form-control search-input" placeholder="Search by name..." value="${search.name || ''}" oninput="debounceSearch()"/>
-      <input id="s-samagra" class="form-control" style="width:160px" placeholder="9-digit ID" maxlength="9" oninput="this.value=this.value.replace(/[^0-9]/g,'')" value="${search.samagraId || ''}"/>
-      <select id="s-class" class="form-control" style="width:140px">
-        <option value="">All Classes</option>
-        ${['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Undergraduate', 'Postgraduate', 'Diploma', 'PhD', 'Other'].map(v => `<option ${search.className === v ? 'selected' : ''} value="${v}">${v}</option>`).join('')}
-      </select>
-      <input id="s-admission" class="form-control" style="width:140px" placeholder="Admission No" value="${search.admissionNumber || ''}"/>
+      <input id="s-samagra" class="form-control" style="width:160px" placeholder="Samagra ID" value="${search.samagraId || ''}"/>
+      <input id="s-class" class="form-control" style="width:120px" placeholder="Class" value="${search.className || ''}"/>
       <select id="s-stream" class="form-control" style="width:130px">
         <option value="">All Streams</option>
         ${['PCM', 'PCB', 'PCMB', 'COMMERCE', 'ARTS', 'GENERAL'].map(s => `<option ${search.stream === s ? 'selected' : ''}>${s}</option>`).join('')}
       </select>
       <button class="btn btn-primary" onclick="searchStudents()">🔍 Search</button>
       <button class="btn btn-secondary" onclick="clearSearch()">✕ Clear</button>
-      <button class="btn btn-success" onclick="exportCsv()">📊 Export CSV</button>
     </div>
     <div class="table-wrap">
       <table>
@@ -127,11 +117,10 @@ const Pages = {
             <td>${s.city || '-'}</td>
             <td><span class="badge ${s.studentStatus === 'ACTIVE' ? 'badge-green' : 'badge-yellow'}">${s.studentStatus}</span></td>
             <td><div class="td-actions">
-               <button class="btn btn-info btn-sm" onclick="navigate('student-detail',${s.id})">👁 View</button>
-               <button class="btn btn-secondary btn-sm" onclick="downloadStudentPdf(${s.id},'${s.fullName}')">📄 PDF</button>
-               <button class="btn btn-secondary btn-sm" onclick="navigate('edit',${s.id})">✏️ Edit</button>
-               <button class="btn btn-danger btn-sm" onclick="confirmDelete(${s.id},'${s.fullName}')">🗑</button>
-             </div></td>
+              <button class="btn btn-info btn-sm" onclick="navigate('student-detail',${s.id})">👁 View</button>
+              <button class="btn btn-secondary btn-sm" onclick="navigate('edit',${s.id})">✏️ Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="confirmDelete(${s.id},'${s.fullName}')">🗑</button>
+            </div></td>
           </tr>`).join('')}
         </tbody>
       </table>
@@ -179,10 +168,10 @@ const Pages = {
       <div class="page-subtitle">Samagra ID: ${s.samagraId} &nbsp;|&nbsp; <span class="badge ${s.studentStatus === 'ACTIVE' ? 'badge-green' : 'badge-yellow'}">${s.studentStatus}</span></div>
     </div>
     <div style="display:flex;gap:10px">
-       <button class="btn btn-secondary" onclick="navigate('students')">← Back</button>
-       <button class="btn btn-secondary" onclick="downloadStudentPdf(${fd.id},'${s.fullName}')">📄 Download PDF</button>
-       <button class="btn btn-primary" onclick="navigate('edit',${fd.id})">✏️ Edit Student</button>
-     </div>
+      <button class="btn btn-info" onclick="downloadRegistrationForm(${fd.id})">📄 Download Form</button>
+      <button class="btn btn-secondary" onclick="navigate('students')">← Back</button>
+      <button class="btn btn-primary" onclick="navigate('edit',${fd.id})">✏️ Edit Student</button>
+    </div>
   </div>
   <div class="tabs" id="detail-tabs">
     <button class="tab-btn active" onclick="showTab('personal')">👤 Personal</button>
@@ -226,8 +215,9 @@ const Pages = {
           </select>
         </div>
         <div class="doc-actions">
-          ${d.filePath ? `<button class="btn btn-primary btn-sm" onclick="viewDocument(${d.id},'${d.fileName || 'document'}')">👁 View</button>` : ''}
-          ${d.filePath ? `<button class="btn btn-info btn-sm" onclick="downloadDocument(${d.id},'${d.fileName || 'document'}')">⬇ Download</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="showEditDoc(${d.id}, ${fd.id}, '${d.documentType}', '${d.documentNumber || ''}')">✏️ Edit</button>
+          ${d.fileName ? `<button class="btn btn-primary btn-sm" onclick="viewDocument(${d.id},'${d.fileName || 'document'}')">👁 View</button>` : ''}
+          ${d.fileName ? `<button class="btn btn-info btn-sm" onclick="downloadDocument(${d.id},'${d.fileName || 'document'}')">⬇ Download</button>` : ''}
           <button class="btn btn-danger btn-sm" onclick="deleteDoc(${d.id},${fd.id})">🗑</button>
         </div>
       </div>`).join('')}
@@ -257,8 +247,9 @@ const Pages = {
           </select>
         </div>
         <div class="doc-actions">
-          ${pb.filePath ? `<button class="btn btn-primary btn-sm" onclick="viewDocument(${pb.id},'${pb.fileName || 'passbook'}')">👁 View</button>` : ''}
-          ${pb.filePath ? `<button class="btn btn-info btn-sm" onclick="downloadDocument(${pb.id},'${pb.fileName || 'passbook'}')">⬇ Download</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="showEditDoc(${pb.id}, ${fd.id}, '${pb.documentType}', '${pb.documentNumber || ''}')">✏️ Edit</button>
+          ${pb.fileName ? `<button class="btn btn-primary btn-sm" onclick="viewDocument(${pb.id},'${pb.fileName || 'passbook'}')">👁 View</button>` : ''}
+          ${pb.fileName ? `<button class="btn btn-info btn-sm" onclick="downloadDocument(${pb.id},'${pb.fileName || 'passbook'}')">⬇ Download</button>` : ''}
           <button class="btn btn-danger btn-sm" onclick="deleteDoc(${pb.id},${fd.id})">🗑 Delete</button>
         </div>
       </div>`;
@@ -297,7 +288,7 @@ const Pages = {
   <div id="f-personal" class="tab-pane card">
     <div class="form-section-title">Personal Information</div>
     <div class="form-grid">
-      <div class="form-group"><label class="form-label">Samagra ID *</label><input id="f-samagraId" class="form-control" value="${p.samagraId || ''}" placeholder="9-digit numeric ID" maxlength="9" oninput="this.value=this.value.replace(/[^0-9]/g,'')"/></div>
+      <div class="form-group"><label class="form-label">Samagra ID *</label><input id="f-samagraId" class="form-control" value="${p.samagraId || ''}" placeholder="e.g. SM12345678"/></div>
       <div class="form-group"><label class="form-label">Full Name *</label><input id="f-fullName" class="form-control" value="${p.fullName || ''}" placeholder="Full Name"/></div>
       <div class="form-group"><label class="form-label">Gender *</label>
         <select id="f-gender" class="form-control">${['', 'MALE', 'FEMALE', 'OTHER'].map(v => `<option ${p.gender === v ? 'selected' : ''} value="${v}">${v || 'Select'}</option>`).join('')}</select></div>
@@ -333,7 +324,7 @@ const Pages = {
         <select id="f-class" class="form-control">${['', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Undergraduate', 'Postgraduate', 'Diploma', 'PhD', 'Other'].map(v => `<option ${ac.className === v ? 'selected' : ''} value="${v}">${v || 'Select'}</option>`).join('')}</select></div>
       <div class="form-group"><label class="form-label">Section</label><input id="f-section" class="form-control" value="${ac.section || ''}"/></div>
       <div class="form-group"><label class="form-label">Roll Number</label><input id="f-roll" class="form-control" value="${ac.rollNumber || ''}"/></div>
-      <div class="form-group"><label class="form-label">Admission Number *</label><input id="f-admNo" class="form-control" value="${ac.admissionNumber || ''}" placeholder="Unique Admission Number"/></div>
+      <div class="form-group"><label class="form-label">Admission Number</label><input id="f-admNo" class="form-control" value="${ac.admissionNumber || ''}"/></div>
       <div class="form-group"><label class="form-label">Board</label><input id="f-board" class="form-control" value="${ac.board || ''}"/></div>
       <div class="form-group"><label class="form-label">Academic Year</label><input id="f-year" class="form-control" value="${ac.academicYear || ''}"/></div>
       <div class="form-group"><label class="form-label">Stream</label>

@@ -73,25 +73,18 @@ function logout() {
 function showSidebar() {
   document.getElementById('sidebar').classList.remove('hidden');
   document.getElementById('main-content').classList.remove('full-width');
-  const topBar = document.getElementById('top-bar');
-  if (topBar) topBar.classList.remove('hidden');
-  
   const name = localStorage.getItem('adminName');
   if (name) document.getElementById('admin-name').textContent = name;
-  
-  const schoolName = localStorage.getItem('schoolName') || 'SmartStudent';
+  const schoolName = localStorage.getItem('schoolName');
   const brandEl = document.getElementById('brand-name-header');
-  if (brandEl) brandEl.textContent = schoolName;
-  
-  const topSchoolEl = document.getElementById('school-name-top');
-  if (topSchoolEl) topSchoolEl.textContent = schoolName;
+  if (brandEl) {
+    brandEl.textContent = schoolName ? schoolName : 'SmartStudent';
+  }
 }
 
 function hideSidebar() {
   document.getElementById('sidebar').classList.add('hidden');
   document.getElementById('main-content').classList.add('full-width');
-  const topBar = document.getElementById('top-bar');
-  if (topBar) topBar.classList.add('hidden');
 }
 
 // ============ LOGIN & SIGNUP ============
@@ -147,7 +140,6 @@ async function renderStudents() {
       ...(searchState.name && { name: searchState.name }),
       ...(searchState.samagraId && { samagraId: searchState.samagraId }),
       ...(searchState.className && { className: searchState.className }),
-      ...(searchState.admissionNumber && { admissionNumber: searchState.admissionNumber }),
       ...(searchState.stream && { stream: searchState.stream }),
     });
     const res = await api.getStudents(params.toString());
@@ -162,7 +154,6 @@ function searchStudents() {
     name: document.getElementById('s-name')?.value || '',
     samagraId: document.getElementById('s-samagra')?.value || '',
     className: document.getElementById('s-class')?.value || '',
-    admissionNumber: document.getElementById('s-admission')?.value || '',
     stream: document.getElementById('s-stream')?.value || '',
   };
   pageNum = 0;
@@ -170,32 +161,6 @@ function searchStudents() {
 }
 
 function clearSearch() { searchState = {}; pageNum = 0; renderStudents(); }
-
-async function exportCsv() {
-  try {
-    const params = new URLSearchParams({
-      ...(searchState.name && { fullName: searchState.name }),
-      ...(searchState.samagraId && { samagraId: searchState.samagraId }),
-      ...(searchState.className && { className: searchState.className }),
-      ...(searchState.admissionNumber && { admissionNumber: searchState.admissionNumber }),
-      ...(searchState.stream && { stream: searchState.stream }),
-    });
-    
-    toast('Preparing your CSV file...', 'info');
-    const blob = await api.downloadCsv(params.toString());
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.style.display = 'none';
-    a.href = url;
-    a.download = `Students_Export_${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    window.URL.revokeObjectURL(url);
-    toast('CSV downloaded successfully', 'success');
-  } catch (e) {
-    toast('Download failed: ' + e.message, 'error');
-  }
-}
 
 function debounceSearch() {
   clearTimeout(debounceTimer);
@@ -321,32 +286,16 @@ function showTab(tabId) {
   event.target.classList.add('active');
 }
 
-// Document management functions
-// Document management functions
-function deleteDoc(docId, studentId) {
-  document.getElementById('modal-content').innerHTML = `
-    <h3 style="margin-bottom:12px">🗑 Delete Document</h3>
-    <p style="color:var(--text-secondary);margin-bottom:20px">Are you sure you want to delete this document? This action cannot be undone.</p>
-    <div style="display:flex;gap:10px;justify-content:flex-end">
-      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-danger" onclick="doDeleteDoc(${docId}, ${studentId})">Delete</button>
-    </div>`;
-  openModal();
-}
-
-async function doDeleteDoc(docId, studentId) {
+async function deleteDoc(docId, studentId) {
+  if (!confirm('Delete this document?')) return;
   try {
     await api.deleteDocument(docId);
-    closeModal();
     toast('Document deleted', 'success');
     renderStudentDetail(studentId);
-  } catch (e) { 
-    console.error('Delete failed:', e);
-    toast(e.message || 'Delete failed', 'error'); 
-  }
+  } catch (e) { toast(e.message, 'error'); }
 }
 
-// Fetch doc as authenticated blob then open in modal
+// Fetch doc as authenticated blob then open inline
 async function viewDocument(docId, fileName) {
   toast('Loading document...', 'info');
   try {
@@ -361,6 +310,7 @@ async function viewDocument(docId, fileName) {
     const isPdf = blob.type === 'application/pdf';
 
     if (isImage) {
+      // Show image in modal lightbox
       document.getElementById('modal-content').innerHTML = `
         <div style="display:flex;flex-direction:column;gap:12px">
           <div style="display:flex;justify-content:space-between;align-items:center">
@@ -377,78 +327,20 @@ async function viewDocument(docId, fileName) {
             <button class="btn btn-info btn-sm" onclick="downloadBlobUrl('${objectUrl}','${fileName}')">⬇ Download</button>
           </div>
         </div>`;
+      // Widen modal for image viewing
       document.querySelector('.modal').style.maxWidth = '800px';
       openModal();
     } else if (isPdf) {
-      document.getElementById('modal-content').innerHTML = `
-        <div style="display:flex;flex-direction:column;height:80vh">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-            <h3 style="font-size:15px">📄 ${fileName}</h3>
-            <button class="btn btn-secondary btn-sm" onclick="closeModal()">✕ Close</button>
-          </div>
-          <iframe src="${objectUrl}" style="flex:1;width:100%;border:none;border-radius:8px"></iframe>
-          <div style="text-align:right;margin-top:10px">
-            <button class="btn btn-info btn-sm" onclick="downloadBlobUrl('${objectUrl}','${fileName}')">⬇ Download</button>
-          </div>
-        </div>`;
-      document.querySelector('.modal').style.maxWidth = '900px';
-      openModal();
+      // Open PDF in new tab
+      window.open(objectUrl, '_blank');
     } else {
+      // Unknown type — trigger download
       downloadBlobUrl(objectUrl, fileName);
-      toast('Opening download for non-previewable file', 'info');
     }
-  } catch (e) { 
-    console.error('View failed:', e);
-    toast(e.message || 'Failed to load document', 'error'); 
-  }
+  } catch (e) { toast(e.message || 'Failed to load document', 'error'); }
 }
 
-// Robust download helper
-function downloadBlobUrl(content, fileName) {
-  const isBlob = typeof content !== 'string';
-  const url = isBlob ? window.URL.createObjectURL(content) : content;
-  const a = document.createElement('a');
-  a.style.display = 'none';
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(() => {
-    document.body.removeChild(a);
-    if (isBlob) window.URL.revokeObjectURL(url);
-  }, 100);
-}
-
-// Authenticated PDF report download
-async function downloadStudentPdf(id, fullName) {
-  toast('Generating PDF Registration Form...', 'info');
-  try {
-    const token = api.getToken();
-    const res = await fetch(api.reportUrl(id), {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'PDF generation failed');
-    }
-
-    const blob = await res.blob();
-    if (blob.type === 'application/json') { // Likely an error message returned as blob
-      throw new Error('Server returned an error instead of a PDF');
-    }
-
-    const safeName = fullName.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-    const fileName = `Registration_Form_${safeName}.pdf`;
-    downloadBlobUrl(blob, fileName);
-    toast('PDF downloaded successfully!', 'success');
-  } catch (e) {
-    console.error('PDF Download failed:', e);
-    toast(e.message || 'PDF Download failed', 'error');
-  }
-}
-
-// Programmatic download with auth and robust filename parsing
+// Programmatic download with auth
 async function downloadDocument(docId, fallbackFileName) {
   toast('Preparing download...', 'info');
   try {
@@ -456,31 +348,80 @@ async function downloadDocument(docId, fallbackFileName) {
     const res = await fetch(api.downloadUrl(docId), {
       headers: { Authorization: `Bearer ${token}` }
     });
-    
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      throw new Error(err.message || 'Download failed');
-    }
+    if (!res.ok) throw new Error('Download failed');
 
-    let finalFileName = fallbackFileName || 'document';
+    // Extract real filename from backend header if available
+    let finalFileName = fallbackFileName;
     const cd = res.headers.get('Content-Disposition');
     if (cd) {
-      const starMatch = cd.match(/filename\*=[^']+'[^']*'([^;\n]+)/i);
-      if (starMatch && starMatch[1]) {
-        finalFileName = decodeURIComponent(starMatch[1]);
-      } else {
-        const match = cd.match(/filename="?([^";\n]+)"?/i);
-        if (match && match[1]) finalFileName = match[1];
+      const filenameMatch = cd.match(/filename\*?=['"]?(?:UTF-8'')?([^'";]+)['"]?/i);
+      if (filenameMatch && filenameMatch[1]) {
+        finalFileName = decodeURIComponent(filenameMatch[1]);
       }
     }
 
     const blob = await res.blob();
-    downloadBlobUrl(blob, finalFileName);
+    downloadBlobUrl(URL.createObjectURL(blob), finalFileName);
     toast('Download started', 'success');
-  } catch (e) { 
-    console.error('Download failed:', e);
-    toast(e.message || 'Download failed', 'error'); 
-  }
+  } catch (e) { toast(e.message || 'Download failed', 'error'); }
+}
+
+// Helper: trigger browser save dialog
+function downloadBlobUrl(url, fileName) {
+  const a = document.createElement('a');
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+}
+
+async function downloadRegistrationForm(studentId) {
+  toast('Generating registration form...', 'info');
+  try {
+    const token = api.getToken();
+    const res = await fetch(api.studentRegistrationUrl(studentId), {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Generation failed');
+    
+    let fileName = `registration_${studentId}.pdf`;
+    const cd = res.headers.get('Content-Disposition');
+    if (cd) {
+      const filenameMatch = cd.match(/filename\*?=['"]?(?:UTF-8'')?([^'";]+)['"]?/i);
+      if (filenameMatch && filenameMatch[1]) fileName = decodeURIComponent(filenameMatch[1]);
+    }
+
+    const blob = await res.blob();
+    downloadBlobUrl(URL.createObjectURL(blob), fileName);
+    toast('Download started', 'success');
+  } catch (e) { toast(e.message || 'Download failed', 'error'); }
+}
+
+async function exportStudentsCsv() {
+  toast('Exporting students to CSV...', 'info');
+  try {
+    const token = api.getToken();
+    const params = new URLSearchParams({
+      ...(searchState.name && { name: searchState.name }),
+      ...(searchState.samagraId && { samagraId: searchState.samagraId }),
+      ...(searchState.className && { className: searchState.className }),
+      ...(searchState.stream && { stream: searchState.stream }),
+    });
+    const res = await fetch(api.exportCsvUrl(params.toString()), {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Export failed');
+
+    let fileName = 'students_export.csv';
+    const cd = res.headers.get('Content-Disposition');
+    if (cd) {
+      const filenameMatch = cd.match(/filename\*?=['"]?(?:UTF-8'')?([^'";]+)['"]?/i);
+      if (filenameMatch && filenameMatch[1]) fileName = decodeURIComponent(filenameMatch[1]);
+    }
+
+    const blob = await res.blob();
+    downloadBlobUrl(URL.createObjectURL(blob), fileName);
+    toast('Export complete', 'success');
+  } catch (e) { toast(e.message || 'Export failed', 'error'); }
 }
 
 
@@ -503,7 +444,7 @@ function showUploadDoc(studentId) {
 async function doUploadDoc(studentId) {
   const docType = document.getElementById('u-docType').value;
   const docNum = document.getElementById('u-docNum').value;
-
+  
   if (docType === 'PEN_NUMBER' && !/^\d{11}$/.test(docNum)) {
     toast('PEN Number must be exactly 11 digits', 'error');
     return;
@@ -532,7 +473,48 @@ async function updateDocStatus(docId, status, studentId) {
   } catch (e) { toast(e.message || 'Update failed', 'error'); }
 }
 
-// Removed - moved to top of file (line 291)
+// Delete Document
+async function deleteDoc(docId, studentId) {
+  if (!confirm('Are you sure you want to delete this document?')) return;
+  try {
+    await api.deleteDocument(docId);
+    toast('Document deleted', 'success');
+    renderStudentDetail(studentId);
+  } catch (e) { toast(e.message || 'Delete failed', 'error'); }
+}
+
+function showEditDoc(docId, studentId, type, num) {
+  document.getElementById('modal-content').innerHTML = `
+    <h3 style="margin-bottom:16px">✏️ Edit Document</h3>
+    <div class="form-group"><label class="form-label">Document Type *</label>
+      <select id="e-docType" class="form-control">
+        ${['AADHAAR', 'SAMAGRA_ID', 'APAAR_ID', 'PEN_NUMBER', 'INCOME_CERTIFICATE', 'DOMICILE_CERTIFICATE', 'BIRTH_CERTIFICATE', 'CASTE_CERTIFICATE', 'TRANSFER_CERTIFICATE', 'ADMISSION_FORM', 'MP_TASS', 'MARKSHEET', 'STUDENT_PHOTO', 'PASSBOOK'].map(t => `<option ${t === type ? 'selected' : ''}>${t}</option>`).join('')}
+      </select></div>
+    <div class="form-group"><label class="form-label">Document Number</label><input id="e-docNum" class="form-control" value="${num || ''}"/></div>
+    <div class="form-group"><label class="form-label">Replace File (Optional)</label><input id="e-file" class="form-control" type="file" accept=".pdf,.jpg,.jpeg,.png"/></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="doUpdateDoc(${docId}, ${studentId})">Update</button>
+    </div>`;
+  openModal();
+}
+
+async function doUpdateDoc(docId, studentId) {
+  const docType = document.getElementById('e-docType').value;
+  const docNum = document.getElementById('e-docNum').value;
+  const file = document.getElementById('e-file').files[0];
+
+  const metadata = JSON.stringify({ documentType: docType, documentNumber: docNum });
+  const fd = new FormData();
+  fd.append('metadata', new Blob([metadata], { type: 'application/json' }));
+  if (file) fd.append('file', file);
+
+  try {
+    await api.updateDocument(docId, fd);
+    closeModal(); toast('Document updated!', 'success');
+    renderStudentDetail(studentId);
+  } catch (e) { toast(e.message || 'Update failed', 'error'); }
+}
 // ============ REGISTER ============
 async function renderRegisterForm(prefill) {
   try {
@@ -575,8 +557,8 @@ function buildFormData(payload) {
 
 async function submitRegister() {
   const payload = getFormData();
-  if (!payload.personalInfo.samagraId || !payload.personalInfo.fullName || !payload.personalInfo.gender || !payload.personalInfo.dateOfBirth || !payload.personalInfo.mobileNumber || !payload.academicInfo.admissionNumber) {
-    toast('Please fill all required fields (*)', 'error'); return;
+  if (!payload.personalInfo.samagraId || !payload.personalInfo.fullName || !payload.personalInfo.gender || !payload.personalInfo.dateOfBirth || !payload.personalInfo.mobileNumber) {
+    toast('Please fill all required fields (Samagra ID, Name, Gender, DOB, Mobile)', 'error'); return;
   }
   try {
     const res = await api.registerStudent(buildFormData(payload));
@@ -590,9 +572,6 @@ async function submitRegister() {
 
 async function submitUpdate() {
   const payload = getFormData();
-  if (!payload.academicInfo.admissionNumber) {
-    toast('Admission Number is required', 'error'); return;
-  }
   try {
     await api.updateStudent(currentStudentId, buildFormData(payload));
     // Upload passbook if a new one was selected
