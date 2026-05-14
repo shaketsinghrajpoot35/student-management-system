@@ -95,7 +95,10 @@ const Pages = {
     <div class="search-row">
       <input id="s-name" class="form-control search-input" placeholder="Search by name..." value="${search.name || ''}" oninput="debounceSearch()"/>
       <input id="s-samagra" class="form-control" style="width:160px" placeholder="Samagra ID" value="${search.samagraId || ''}"/>
-      <input id="s-class" class="form-control" style="width:120px" placeholder="Class" value="${search.className || ''}"/>
+      <select id="s-class" class="form-control" style="width:130px">
+        <option value="">All Classes</option>
+        ${['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Undergraduate', 'Postgraduate', 'Diploma', 'PhD', 'Other'].map(v => `<option ${search.className === v ? 'selected' : ''} value="${v}">${v}</option>`).join('')}
+      </select>
       <select id="s-stream" class="form-control" style="width:130px">
         <option value="">All Streams</option>
         ${['PCM', 'PCB', 'PCMB', 'COMMERCE', 'ARTS', 'GENERAL'].map(s => `<option ${search.stream === s ? 'selected' : ''}>${s}</option>`).join('')}
@@ -117,6 +120,7 @@ const Pages = {
             <td>${s.city || '-'}</td>
             <td><span class="badge ${s.studentStatus === 'ACTIVE' ? 'badge-green' : 'badge-yellow'}">${s.studentStatus}</span></td>
             <td><div class="td-actions">
+              <button class="btn btn-info btn-sm" onclick="downloadRegistrationForm(${s.id})">📄 PDF</button>
               <button class="btn btn-info btn-sm" onclick="navigate('student-detail',${s.id})">👁 View</button>
               <button class="btn btn-secondary btn-sm" onclick="navigate('edit',${s.id})">✏️ Edit</button>
               <button class="btn btn-danger btn-sm" onclick="confirmDelete(${s.id},'${s.fullName}')">🗑</button>
