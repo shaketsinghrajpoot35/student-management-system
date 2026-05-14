@@ -353,8 +353,11 @@ async function downloadDocument(docId, fallbackFileName) {
     // Extract real filename from backend header if available
     let finalFileName = fallbackFileName;
     const cd = res.headers.get('Content-Disposition');
-    if (cd && cd.includes('filename=')) {
-      finalFileName = cd.split('filename=')[1].replace(/"/g, '');
+    if (cd) {
+      const filenameMatch = cd.match(/filename\*?=['"]?(?:UTF-8'')?([^'";]+)['"]?/i);
+      if (filenameMatch && filenameMatch[1]) {
+        finalFileName = decodeURIComponent(filenameMatch[1]);
+      }
     }
 
     const blob = await res.blob();
@@ -369,6 +372,56 @@ function downloadBlobUrl(url, fileName) {
   a.href = url; a.download = fileName;
   document.body.appendChild(a); a.click();
   document.body.removeChild(a);
+}
+
+async function downloadRegistrationForm(studentId) {
+  toast('Generating registration form...', 'info');
+  try {
+    const token = api.getToken();
+    const res = await fetch(api.studentRegistrationUrl(studentId), {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Generation failed');
+    
+    let fileName = `registration_${studentId}.pdf`;
+    const cd = res.headers.get('Content-Disposition');
+    if (cd) {
+      const filenameMatch = cd.match(/filename\*?=['"]?(?:UTF-8'')?([^'";]+)['"]?/i);
+      if (filenameMatch && filenameMatch[1]) fileName = decodeURIComponent(filenameMatch[1]);
+    }
+
+    const blob = await res.blob();
+    downloadBlobUrl(URL.createObjectURL(blob), fileName);
+    toast('Download started', 'success');
+  } catch (e) { toast(e.message || 'Download failed', 'error'); }
+}
+
+async function exportStudentsCsv() {
+  toast('Exporting students to CSV...', 'info');
+  try {
+    const token = api.getToken();
+    const params = new URLSearchParams({
+      ...(searchState.name && { name: searchState.name }),
+      ...(searchState.samagraId && { samagraId: searchState.samagraId }),
+      ...(searchState.className && { className: searchState.className }),
+      ...(searchState.stream && { stream: searchState.stream }),
+    });
+    const res = await fetch(api.exportCsvUrl(params.toString()), {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error('Export failed');
+
+    let fileName = 'students_export.csv';
+    const cd = res.headers.get('Content-Disposition');
+    if (cd) {
+      const filenameMatch = cd.match(/filename\*?=['"]?(?:UTF-8'')?([^'";]+)['"]?/i);
+      if (filenameMatch && filenameMatch[1]) fileName = decodeURIComponent(filenameMatch[1]);
+    }
+
+    const blob = await res.blob();
+    downloadBlobUrl(URL.createObjectURL(blob), fileName);
+    toast('Export complete', 'success');
+  } catch (e) { toast(e.message || 'Export failed', 'error'); }
 }
 
 

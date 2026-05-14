@@ -23,12 +23,13 @@ public class StudentReportController {
     public ResponseEntity<InputStreamResource> downloadStudentRegistrationForm(@PathVariable Long id) {
         ByteArrayInputStream bis = studentPdfService.generateStudentRegistrationForm(id);
         
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-Disposition", "attachment; filename=student_registration_" + id + ".pdf");
-
+        org.springframework.http.ContentDisposition contentDisposition = org.springframework.http.ContentDisposition.attachment()
+                .filename("student_registration_" + id + ".pdf", java.nio.charset.StandardCharsets.UTF_8)
+                .build();
+        
         return ResponseEntity
                 .ok()
-                .headers(headers)
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(new InputStreamResource(bis));
     }
@@ -43,12 +44,13 @@ public class StudentReportController {
         
         ByteArrayInputStream bis = studentExportService.exportStudentsToCsv(name, samagraId, className, admissionNumber, stream);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.add("Content-Disposition", "attachment; filename=students_export.csv");
-
+        org.springframework.http.ContentDisposition contentDisposition = org.springframework.http.ContentDisposition.attachment()
+                .filename("students_export.csv", java.nio.charset.StandardCharsets.UTF_8)
+                .build();
+        
         return ResponseEntity
                 .ok()
-                .headers(headers)
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
                 .contentType(MediaType.parseMediaType("text/csv"))
                 .body(new InputStreamResource(bis));
     }

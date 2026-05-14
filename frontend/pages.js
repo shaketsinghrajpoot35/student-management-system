@@ -86,7 +86,10 @@ const Pages = {
 <div class="fade-in">
   <div class="page-header">
     <div><div class="page-title">Students</div><div class="page-subtitle">${data.totalElements || 0} students found</div></div>
-    <button class="btn btn-primary" onclick="navigate('register')">➕ Register Student</button>
+    <div>
+      <button class="btn btn-secondary" onclick="exportStudentsCsv()">📥 Export CSV</button>
+      <button class="btn btn-primary" onclick="navigate('register')">➕ Register Student</button>
+    </div>
   </div>
   <div class="card">
     <div class="search-row">
@@ -165,6 +168,7 @@ const Pages = {
       <div class="page-subtitle">Samagra ID: ${s.samagraId} &nbsp;|&nbsp; <span class="badge ${s.studentStatus === 'ACTIVE' ? 'badge-green' : 'badge-yellow'}">${s.studentStatus}</span></div>
     </div>
     <div style="display:flex;gap:10px">
+      <button class="btn btn-info" onclick="downloadRegistrationForm(${fd.id})">📄 Download Form</button>
       <button class="btn btn-secondary" onclick="navigate('students')">← Back</button>
       <button class="btn btn-primary" onclick="navigate('edit',${fd.id})">✏️ Edit Student</button>
     </div>
