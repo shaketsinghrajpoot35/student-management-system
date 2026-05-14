@@ -20,6 +20,6 @@ ENV SPRING_JPA_HIBERNATE_DDL_AUTO=none
 # Expose the dynamic port
 EXPOSE ${PORT:-8080}
 
-# Start application with EXTREME aggressive memory optimizations
-# -XX:TieredStopAtLevel=1 is the secret for running Java in small containers
-ENTRYPOINT ["sh", "-c", "java -Xmx172m -Xms128m -XX:TieredStopAtLevel=1 -XX:+UseSerialGC -XX:MaxMetaspaceSize=80m -jar app.jar --server.port=${PORT:-8080}"]
+# Final memory balance for 512MB RAM
+# 160MB Heap + 160MB Metaspace + 192MB Native/OS = 512MB Total
+ENTRYPOINT ["sh", "-c", "java -Xmx160m -Xms128m -XX:TieredStopAtLevel=1 -XX:+UseSerialGC -XX:MaxMetaspaceSize=160m -jar app.jar --server.port=${PORT:-8080}"]
