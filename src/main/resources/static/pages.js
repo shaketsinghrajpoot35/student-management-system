@@ -2,86 +2,9 @@
 
 const Pages = {
 
-  home: () => `
-<div class="home-page fade-in">
-  <nav class="home-nav">
-    <div class="sidebar-brand" style="padding:0">
-      <div class="brand-icon">🎓</div>
-      <span class="brand-name">SmartStudent</span>
-    </div>
-    <div style="display:flex;gap:12px">
-      <button class="btn btn-secondary" onclick="navigate('login')">Login</button>
-      <button class="btn btn-primary" onclick="navigate('signup')">Get Started</button>
-    </div>
-  </nav>
-  
-  <header class="hero">
-    <h1>Manage Your School with <span>Intelligence</span></h1>
-    <p>A secure, professional, and lightning-fast student record and document management system designed for modern educational institutions.</p>
-    <div class="hero-btns">
-      <button class="btn btn-primary" style="padding:16px 40px;font-size:16px" onclick="navigate('signup')">Create Free Admin Account</button>
-      <button class="btn btn-secondary" style="padding:16px 40px;font-size:16px" onclick="navigate('login')">Access Portal</button>
-    </div>
-    <div style="margin-top:20px">
-       <a href="#" onclick="navigate('forget-password')" style="color:var(--text-secondary);text-decoration:underline;font-size:14px">Forgot Password?</a>
-    </div>
-  </header>
-
-  <section class="features">
-    <div class="feature-card">
-      <div class="feature-icon">🛡️</div>
-      <h3>Highly Secure</h3>
-      <p>Advanced encryption and secure document storage to protect sensitive student data at all times.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">⚡</div>
-      <h3>Real-time Tracking</h3>
-      <p>Monitor student progress, attendance, and document verification status in real-time from any device.</p>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon">📱</div>
-      <h3>Fully Responsive</h3>
-      <p>Access your dashboard from your phone, tablet, or desktop with a perfectly optimized interface.</p>
-    </div>
-  </section>
-</div>`,
-
-  forgetPassword: () => `
-<div class="login-page fade-in">
-  <div class="login-card">
-    <div class="login-logo">
-      <span class="icon">🔐</span>
-      <h1>Reset Password</h1>
-      <p>Securely update your admin credentials</p>
-    </div>
-    <div id="cp-error" class="login-error" style="display:none"></div>
-    <div class="form-group">
-      <label class="form-label">Current Password</label>
-      <input id="cp-old" class="form-control" placeholder="••••••••" type="password"/>
-    </div>
-    <div class="form-group">
-      <label class="form-label">New Password</label>
-      <input id="cp-new" class="form-control" placeholder="••••••••" type="password"/>
-    </div>
-    <div class="form-group">
-      <label class="form-label">Confirm New Password</label>
-      <input id="cp-confirm" class="form-control" placeholder="••••••••" type="password"/>
-    </div>
-    <button class="btn btn-primary btn-full" style="margin-top:8px;padding:14px" onclick="doChangePassword()">Update Password</button>
-    <div style="margin-top:24px;text-align:center">
-      <button class="btn btn-secondary btn-sm" onclick="navigate('login')">← Back to Login</button>
-    </div>
-  </div>
-</div>`,
-
   login: () => `
 <div class="login-page">
   <div class="login-card fade-in">
-    <div class="login-logo">
-      <span class="icon">🎓</span>
-      <h1>SmartStudent</h1>
-      <p>Secure Admin Portal</p>
-    </div>
     <div id="login-error" class="login-error"></div>
     <div class="form-group">
       <label class="form-label">Email or Username</label>
@@ -95,17 +18,21 @@ const Pages = {
     <div style="margin-top:16px;text-align:center;font-size:14px;color:var(--text-muted)">
       Don't have an account? <a href="#" onclick="navigate('signup')" style="color:var(--primary);text-decoration:none;font-weight:500">Sign Up</a>
     </div>
+    <div class="dev-credits" style="margin-top:24px; background:rgba(255,255,255,0.02)">
+      <p>Made with ❤️ by</p>
+      <a href="https://github.com/shaketsinghrajpoot35" target="_blank" class="dev-name">Shaket Singh Rajpoot</a>
+      <div class="dev-socials">
+        <a href="https://github.com/shaketsinghrajpoot35" target="_blank" title="GitHub">🐙</a>
+        <a href="https://www.linkedin.com/in/shaket-singh-rajpoot-702439327/" target="_blank" title="LinkedIn">🔗</a>
+        <a href="https://www.instagram.com/shaket_.singh_rajpoot24?igsh=MWdlODM5dXJqaXNjYg==" target="_blank" title="Instagram">📸</a>
+      </div>
+    </div>
   </div>
 </div>`,
 
   signup: () => `
 <div class="login-page">
   <div class="login-card fade-in">
-    <div class="login-logo">
-      <span class="icon">🎓</span>
-      <h1>SmartStudent</h1>
-      <p>Admin Registration</p>
-    </div>
     <div id="signup-error" class="login-error"></div>
     <div class="form-group">
       <label class="form-label">Email</label>
@@ -122,6 +49,15 @@ const Pages = {
     <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doSignup()">Create Account</button>
     <div style="margin-top:16px;text-align:center;font-size:14px;color:var(--text-muted)">
       Already have an account? <a href="#" onclick="navigate('login')" style="color:var(--primary);text-decoration:none;font-weight:500">Login</a>
+    </div>
+    <div class="dev-credits" style="margin-top:24px; background:rgba(255,255,255,0.02)">
+      <p>Made with ❤️ by</p>
+      <a href="https://github.com/shaketsinghrajpoot35" target="_blank" class="dev-name">Shaket Singh Rajpoot</a>
+      <div class="dev-socials">
+        <a href="https://github.com/shaketsinghrajpoot35" target="_blank" title="GitHub">🐙</a>
+        <a href="https://www.linkedin.com/in/shaket-singh-rajpoot-702439327/" target="_blank" title="LinkedIn">🔗</a>
+        <a href="https://www.instagram.com/shaket_.singh_rajpoot24?igsh=MWdlODM5dXJqaXNjYg==" target="_blank" title="Instagram">📸</a>
+      </div>
     </div>
   </div>
 </div>`,
@@ -163,14 +99,19 @@ const Pages = {
   <div class="card">
     <div class="search-row">
       <input id="s-name" class="form-control search-input" placeholder="Search by name..." value="${search.name || ''}" oninput="debounceSearch()"/>
-      <input id="s-samagra" class="form-control" style="width:160px" placeholder="Samagra ID" value="${search.samagraId || ''}"/>
-      <input id="s-class" class="form-control" style="width:120px" placeholder="Class" value="${search.className || ''}"/>
+      <input id="s-samagra" class="form-control" style="width:160px" placeholder="9-digit ID" maxlength="9" oninput="this.value=this.value.replace(/[^0-9]/g,'')" value="${search.samagraId || ''}"/>
+      <select id="s-class" class="form-control" style="width:140px">
+        <option value="">All Classes</option>
+        ${['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Undergraduate', 'Postgraduate', 'Diploma', 'PhD', 'Other'].map(v => `<option ${search.className === v ? 'selected' : ''} value="${v}">${v}</option>`).join('')}
+      </select>
+      <input id="s-admission" class="form-control" style="width:140px" placeholder="Admission No" value="${search.admissionNumber || ''}"/>
       <select id="s-stream" class="form-control" style="width:130px">
         <option value="">All Streams</option>
         ${['PCM', 'PCB', 'PCMB', 'COMMERCE', 'ARTS', 'GENERAL'].map(s => `<option ${search.stream === s ? 'selected' : ''}>${s}</option>`).join('')}
       </select>
       <button class="btn btn-primary" onclick="searchStudents()">🔍 Search</button>
       <button class="btn btn-secondary" onclick="clearSearch()">✕ Clear</button>
+      <button class="btn btn-success" onclick="exportCsv()">📊 Export CSV</button>
     </div>
     <div class="table-wrap">
       <table>
@@ -186,10 +127,11 @@ const Pages = {
             <td>${s.city || '-'}</td>
             <td><span class="badge ${s.studentStatus === 'ACTIVE' ? 'badge-green' : 'badge-yellow'}">${s.studentStatus}</span></td>
             <td><div class="td-actions">
-              <button class="btn btn-info btn-sm" onclick="navigate('student-detail',${s.id})">👁 View</button>
-              <button class="btn btn-secondary btn-sm" onclick="navigate('edit',${s.id})">✏️ Edit</button>
-              <button class="btn btn-danger btn-sm" onclick="confirmDelete(${s.id},'${s.fullName}')">🗑</button>
-            </div></td>
+               <button class="btn btn-info btn-sm" onclick="navigate('student-detail',${s.id})">👁 View</button>
+               <button class="btn btn-secondary btn-sm" onclick="downloadStudentPdf(${s.id},'${s.fullName}')">📄 PDF</button>
+               <button class="btn btn-secondary btn-sm" onclick="navigate('edit',${s.id})">✏️ Edit</button>
+               <button class="btn btn-danger btn-sm" onclick="confirmDelete(${s.id},'${s.fullName}')">🗑</button>
+             </div></td>
           </tr>`).join('')}
         </tbody>
       </table>
@@ -237,9 +179,10 @@ const Pages = {
       <div class="page-subtitle">Samagra ID: ${s.samagraId} &nbsp;|&nbsp; <span class="badge ${s.studentStatus === 'ACTIVE' ? 'badge-green' : 'badge-yellow'}">${s.studentStatus}</span></div>
     </div>
     <div style="display:flex;gap:10px">
-      <button class="btn btn-secondary" onclick="navigate('students')">← Back</button>
-      <button class="btn btn-primary" onclick="navigate('edit',${fd.id})">✏️ Edit Student</button>
-    </div>
+       <button class="btn btn-secondary" onclick="navigate('students')">← Back</button>
+       <button class="btn btn-secondary" onclick="downloadStudentPdf(${fd.id},'${s.fullName}')">📄 Download PDF</button>
+       <button class="btn btn-primary" onclick="navigate('edit',${fd.id})">✏️ Edit Student</button>
+     </div>
   </div>
   <div class="tabs" id="detail-tabs">
     <button class="tab-btn active" onclick="showTab('personal')">👤 Personal</button>
@@ -354,7 +297,7 @@ const Pages = {
   <div id="f-personal" class="tab-pane card">
     <div class="form-section-title">Personal Information</div>
     <div class="form-grid">
-      <div class="form-group"><label class="form-label">Samagra ID *</label><input id="f-samagraId" class="form-control" value="${p.samagraId || ''}" placeholder="e.g. SM12345678"/></div>
+      <div class="form-group"><label class="form-label">Samagra ID *</label><input id="f-samagraId" class="form-control" value="${p.samagraId || ''}" placeholder="9-digit numeric ID" maxlength="9" oninput="this.value=this.value.replace(/[^0-9]/g,'')"/></div>
       <div class="form-group"><label class="form-label">Full Name *</label><input id="f-fullName" class="form-control" value="${p.fullName || ''}" placeholder="Full Name"/></div>
       <div class="form-group"><label class="form-label">Gender *</label>
         <select id="f-gender" class="form-control">${['', 'MALE', 'FEMALE', 'OTHER'].map(v => `<option ${p.gender === v ? 'selected' : ''} value="${v}">${v || 'Select'}</option>`).join('')}</select></div>
@@ -390,7 +333,7 @@ const Pages = {
         <select id="f-class" class="form-control">${['', 'Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Undergraduate', 'Postgraduate', 'Diploma', 'PhD', 'Other'].map(v => `<option ${ac.className === v ? 'selected' : ''} value="${v}">${v || 'Select'}</option>`).join('')}</select></div>
       <div class="form-group"><label class="form-label">Section</label><input id="f-section" class="form-control" value="${ac.section || ''}"/></div>
       <div class="form-group"><label class="form-label">Roll Number</label><input id="f-roll" class="form-control" value="${ac.rollNumber || ''}"/></div>
-      <div class="form-group"><label class="form-label">Admission Number</label><input id="f-admNo" class="form-control" value="${ac.admissionNumber || ''}"/></div>
+      <div class="form-group"><label class="form-label">Admission Number *</label><input id="f-admNo" class="form-control" value="${ac.admissionNumber || ''}" placeholder="Unique Admission Number"/></div>
       <div class="form-group"><label class="form-label">Board</label><input id="f-board" class="form-control" value="${ac.board || ''}"/></div>
       <div class="form-group"><label class="form-label">Academic Year</label><input id="f-year" class="form-control" value="${ac.academicYear || ''}"/></div>
       <div class="form-group"><label class="form-label">Stream</label>

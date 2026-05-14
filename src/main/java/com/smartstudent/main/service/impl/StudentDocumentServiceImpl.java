@@ -51,10 +51,10 @@ public class StudentDocumentServiceImpl implements StudentDocumentService {
         }
 
         if (file != null && !file.isEmpty()) {
-            byte[] encryptedData = fileStorageUtil.encryptToBytes(file);
+            String filePath = fileStorageUtil.storeFile(
+                    file, studentId, dto.getDocumentType().name());
             document.setFileName(file.getOriginalFilename());
-            document.setFilePath("db://" + file.getOriginalFilename()); // Virtual path
-            document.setEncryptedData(encryptedData);
+            document.setFilePath(filePath);
         }
 
         return documentMapper.toResponseDTO(documentRepository.save(document));
@@ -84,17 +84,13 @@ public class StudentDocumentServiceImpl implements StudentDocumentService {
         if (dto.getRemarks() != null) document.setRemarks(dto.getRemarks());
         if (dto.getVerificationStatus() != null) document.setVerificationStatus(dto.getVerificationStatus());
 
-        // Replace data if provided
+        // Replace file if provided
         if (file != null && !file.isEmpty()) {
-            // Old file cleanup (if any existed on disk)
-            if (document.getFilePath() != null && !document.getFilePath().startsWith("db://")) {
-                fileStorageUtil.deleteFile(document.getFilePath());
-            }
-            
-            byte[] encryptedData = fileStorageUtil.encryptToBytes(file);
+            fileStorageUtil.deleteFile(document.getFilePath());
+            String filePath = fileStorageUtil.storeFile(
+                    file, document.getStudent().getId(), document.getDocumentType().name());
             document.setFileName(file.getOriginalFilename());
-            document.setFilePath("db://" + file.getOriginalFilename());
-            document.setEncryptedData(encryptedData);
+            document.setFilePath(filePath);
         }
 
         return documentMapper.toResponseDTO(documentRepository.save(document));
@@ -112,13 +108,6 @@ public class StudentDocumentServiceImpl implements StudentDocumentService {
     @Transactional(readOnly = true)
     public Resource downloadDocument(Long documentId) {
         StudentDocument document = findDocumentById(documentId);
-        
-        // If it's a new DB-backed document
-        if (document.getEncryptedData() != null) {
-            return fileStorageUtil.decryptToResource(document.getEncryptedData(), document.getFileName());
-        }
-        
-        // Fallback for old file-based documents
         return fileStorageUtil.loadFileAsResource(document.getFilePath());
     }
 

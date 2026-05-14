@@ -1,5 +1,5 @@
 /* api.js — Axios-like fetch wrapper for the SmartStudent backend */
-const BASE_URL = '';
+const BASE_URL = 'http://localhost:8080';
 
 const api = {
   getToken: () => localStorage.getItem('token'),

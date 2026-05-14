@@ -100,33 +100,6 @@ public class FileStorageUtil {
     }
 
     /**
-     * Encrypt a MultipartFile and return the combined IV + Encrypted Data as a byte array.
-     */
-    public byte[] encryptToBytes(MultipartFile file) {
-        validateFile(file);
-        try {
-            byte[] iv = new byte[GCM_IV_LENGTH];
-            new SecureRandom().nextBytes(iv);
-
-            Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-            SecretKeySpec keySpec = new SecretKeySpec(getFileKey(), ALGORITHM);
-            GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
-            cipher.init(Cipher.ENCRYPT_MODE, keySpec, gcmParameterSpec);
-
-            byte[] encryptedData = cipher.doFinal(file.getBytes());
-
-            // Combine IV + Data
-            byte[] combined = new byte[iv.length + encryptedData.length];
-            System.arraycopy(iv, 0, combined, 0, iv.length);
-            System.arraycopy(encryptedData, 0, combined, iv.length, encryptedData.length);
-
-            return combined;
-        } catch (Exception e) {
-            throw new FileStorageException("Failed to encrypt file data: " + file.getOriginalFilename(), e);
-        }
-    }
-
-    /**
      * Delete a file from disk safely.
      */
     public void deleteFile(String filePath) {
@@ -147,22 +120,8 @@ public class FileStorageUtil {
         try {
             Path fullPath = Paths.get(uploadDir).toAbsolutePath().normalize().resolve(filePath);
             File file = fullPath.toFile();
-            
-            if (!file.exists()) {
-                log.error("File not found on disk: {}", fullPath);
-                throw new FileStorageException("Document file not found on server storage. If you recently deployed, ensure you have a Render Disk attached to persist files.");
-            }
-            
-            if (!file.canRead()) {
-                throw new FileStorageException("File is not readable: " + filePath);
-            }
-
-            byte[] key;
-            try {
-                key = getFileKey();
-            } catch (Exception e) {
-                log.error("Invalid FILE_ENCRYPTION_KEY configuration: {}", e.getMessage());
-                throw new FileStorageException("Encryption key is invalid or not properly Base64 encoded. Check your environment variables.");
+            if (!file.exists() || !file.canRead()) {
+                throw new FileStorageException("File not found or not readable: " + filePath);
             }
 
             FileInputStream fis = new FileInputStream(file);
@@ -172,43 +131,8 @@ public class FileStorageUtil {
             int ivRead = fis.read(iv);
             if (ivRead != GCM_IV_LENGTH) {
                 fis.close();
-                throw new FileStorageException("Invalid encrypted file: Authentication header (IV) missing or corrupted.");
+                throw new FileStorageException("Invalid encrypted file: IV missing");
             }
-
-            // Decryption setup
-            Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-            SecretKeySpec keySpec = new SecretKeySpec(key, ALGORITHM);
-            GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
-            cipher.init(Cipher.DECRYPT_MODE, keySpec, gcmParameterSpec);
-
-            CipherInputStream cis = new CipherInputStream(fis, cipher);
-            return new InputStreamResource(cis);
-
-        } catch (FileStorageException e) {
-            throw e;
-        } catch (Exception e) {
-            log.error("Decryption failed for file {}: {}", filePath, e.getMessage());
-            throw new FileStorageException("Could not decrypt file. This usually happens if the FILE_ENCRYPTION_KEY has changed since the file was uploaded.", e);
-        }
-    }
-
-    /**
-     * Decrypt a byte array (IV + Encrypted Data) and return as a Resource.
-     */
-    public Resource decryptToResource(byte[] combinedData, String fileName) {
-        if (combinedData == null || combinedData.length <= GCM_IV_LENGTH) {
-            throw new FileStorageException("Invalid or missing encrypted data in database.");
-        }
-
-        try {
-            // Extract IV
-            byte[] iv = new byte[GCM_IV_LENGTH];
-            System.arraycopy(combinedData, 0, iv, 0, GCM_IV_LENGTH);
-
-            // Extract Encrypted Data
-            int dataLength = combinedData.length - GCM_IV_LENGTH;
-            byte[] encryptedData = new byte[dataLength];
-            System.arraycopy(combinedData, GCM_IV_LENGTH, encryptedData, 0, dataLength);
 
             // Decryption setup
             Cipher cipher = Cipher.getInstance(TRANSFORMATION);
@@ -216,12 +140,11 @@ public class FileStorageUtil {
             GCMParameterSpec gcmParameterSpec = new GCMParameterSpec(GCM_TAG_LENGTH, iv);
             cipher.init(Cipher.DECRYPT_MODE, keySpec, gcmParameterSpec);
 
-            byte[] decryptedData = cipher.doFinal(encryptedData);
-            return new InputStreamResource(new ByteArrayInputStream(decryptedData));
+            CipherInputStream cis = new CipherInputStream(fis, cipher);
+            return new InputStreamResource(cis);
 
         } catch (Exception e) {
-            log.error("Decryption from database failed for {}: {}", fileName, e.getMessage());
-            throw new FileStorageException("Could not decrypt document data from database.", e);
+            throw new FileStorageException("Could not decrypt and load file: " + filePath, e);
         }
     }
 

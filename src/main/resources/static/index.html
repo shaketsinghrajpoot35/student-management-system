@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SmartStudent — Admin Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap"
     rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -16,7 +16,7 @@
   <div id="app">
     <!-- SIDEBAR (hidden on login) -->
     <aside id="sidebar" class="sidebar hidden">
-      <div class="sidebar-brand">
+      <div class="sidebar-brand" onclick="navigate('dashboard')" title="Go to Dashboard">
         <div class="brand-icon">🎓</div>
         <span class="brand-name" id="brand-name-header">SmartStudent</span>
       </div>
@@ -39,11 +39,26 @@
           </div>
         </div>
         <button class="btn-logout" onclick="logout()">Logout</button>
+        <div class="dev-credits">
+          <p>Made with ❤️ by</p>
+          <a href="https://github.com/shaketsinghrajpoot35" target="_blank" class="dev-name">Shaket Singh Rajpoot</a>
+          <div class="dev-socials">
+            <a href="https://github.com/shaketsinghrajpoot35" target="_blank" title="GitHub">🐙</a>
+            <a href="https://www.linkedin.com/in/shaket-singh-rajpoot-702439327/" target="_blank" title="LinkedIn">🔗</a>
+            <a href="https://www.instagram.com/shaket_.singh_rajpoot24?igsh=MWdlODM5dXJqaXNjYg==" target="_blank" title="Instagram">📸</a>
+          </div>
+        </div>
       </div>
     </aside>
 
     <!-- MAIN CONTENT -->
     <main id="main-content" class="main-content full-width">
+      <header id="top-bar" class="main-header hidden">
+        <div class="header-content">
+          <div class="header-icon">🎓</div>
+          <h1 id="school-name-top" class="header-title">SmartStudent</h1>
+        </div>
+      </header>
       <div id="page-container"></div>
     </main>
   </div>
@@ -58,9 +73,9 @@
     </div>
   </div>
 
-  <script src="api.js?v=8"></script>
-  <script src="pages.js?v=8"></script>
-  <script src="app.js?v=8"></script>
+  <script src="api.js?v=9"></script>
+  <script src="pages.js?v=9"></script>
+  <script src="app.js?v=9"></script>
 </body>
 
 </html>

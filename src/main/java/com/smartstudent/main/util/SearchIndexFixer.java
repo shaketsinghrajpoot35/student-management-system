@@ -8,7 +8,6 @@ import com.smartstudent.main.repository.StudentRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,30 +21,10 @@ public class SearchIndexFixer {
     private final StudentRepository studentRepository;
     private final AcademicDetailsRepository academicDetailsRepository;
     private final BankDetailsRepository bankDetailsRepository;
-    private final JdbcTemplate jdbcTemplate;
 
     @PostConstruct
     @Transactional
     public void fixSearchIndexes() {
-        log.info("Starting database schema and index synchronization...");
-
-        // Fix: Manual creation of join table if Hibernate missed it
-        try {
-            log.info("Checking for missing join table 'student_subjects'...");
-            jdbcTemplate.execute("""
-                CREATE TABLE IF NOT EXISTS student_subjects (
-                    student_id BIGINT NOT NULL,
-                    subject_id BIGINT NOT NULL,
-                    PRIMARY KEY (student_id, subject_id),
-                    CONSTRAINT FK_student FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE,
-                    CONSTRAINT FK_subject FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
-                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci
-            """);
-            log.info("Join table 'student_subjects' is verified/created.");
-        } catch (Exception e) {
-            log.warn("Schema fix skipped (might already exist or tables missing): {}", e.getMessage());
-        }
-
         log.info("Starting search index synchronization...");
 
         // Fix Student samagraIdSearch
