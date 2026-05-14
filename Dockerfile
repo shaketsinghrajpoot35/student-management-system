@@ -20,6 +20,6 @@ ENV SPRING_JPA_HIBERNATE_DDL_AUTO=update
 # Expose the dynamic port
 EXPOSE ${PORT:-8080}
 
-# Start application with memory optimizations for 512MB RAM
-# Using shell form to ensure ${PORT} is correctly expanded
-ENTRYPOINT ["sh", "-c", "java -Xmx300m -Xms128m -XX:+UseG1GC -jar app.jar --server.port=${PORT:-8080}"]
+# Start application with aggressive memory optimizations for 512MB RAM
+# -Xmx256m leaves enough room for non-heap and OS memory
+ENTRYPOINT ["sh", "-c", "java -Xmx256m -Xms128m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m -jar app.jar --server.port=${PORT:-8080}"]
