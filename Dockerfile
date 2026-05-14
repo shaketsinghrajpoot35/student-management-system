@@ -20,6 +20,6 @@ ENV SPRING_JPA_HIBERNATE_DDL_AUTO=update
 # Expose the dynamic port
 EXPOSE ${PORT:-8080}
 
-# Start application with aggressive memory optimizations for 512MB RAM
-# -Xmx256m leaves enough room for non-heap and OS memory
-ENTRYPOINT ["sh", "-c", "java -Xmx256m -Xms128m -XX:+UseG1GC -XX:MaxMetaspaceSize=128m -jar app.jar --server.port=${PORT:-8080}"]
+# Start application with SUPER aggressive memory optimizations for 512MB RAM
+# -Xmx192m is the bare minimum for Spring Boot 3.4 to stay under 512MB total
+ENTRYPOINT ["sh", "-c", "java -Xmx192m -Xms128m -XX:+UseG1GC -XX:MaxMetaspaceSize=96m -jar app.jar --server.port=${PORT:-8080}"]
