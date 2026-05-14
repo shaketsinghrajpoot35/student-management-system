@@ -482,6 +482,39 @@ async function deleteDoc(docId, studentId) {
     renderStudentDetail(studentId);
   } catch (e) { toast(e.message || 'Delete failed', 'error'); }
 }
+
+function showEditDoc(docId, studentId, type, num) {
+  document.getElementById('modal-content').innerHTML = `
+    <h3 style="margin-bottom:16px">✏️ Edit Document</h3>
+    <div class="form-group"><label class="form-label">Document Type *</label>
+      <select id="e-docType" class="form-control">
+        ${['AADHAAR', 'SAMAGRA_ID', 'APAAR_ID', 'PEN_NUMBER', 'INCOME_CERTIFICATE', 'DOMICILE_CERTIFICATE', 'BIRTH_CERTIFICATE', 'CASTE_CERTIFICATE', 'TRANSFER_CERTIFICATE', 'ADMISSION_FORM', 'MP_TASS', 'MARKSHEET', 'STUDENT_PHOTO', 'PASSBOOK'].map(t => `<option ${t === type ? 'selected' : ''}>${t}</option>`).join('')}
+      </select></div>
+    <div class="form-group"><label class="form-label">Document Number</label><input id="e-docNum" class="form-control" value="${num || ''}"/></div>
+    <div class="form-group"><label class="form-label">Replace File (Optional)</label><input id="e-file" class="form-control" type="file" accept=".pdf,.jpg,.jpeg,.png"/></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="doUpdateDoc(${docId}, ${studentId})">Update</button>
+    </div>`;
+  openModal();
+}
+
+async function doUpdateDoc(docId, studentId) {
+  const docType = document.getElementById('e-docType').value;
+  const docNum = document.getElementById('e-docNum').value;
+  const file = document.getElementById('e-file').files[0];
+
+  const metadata = JSON.stringify({ documentType: docType, documentNumber: docNum });
+  const fd = new FormData();
+  fd.append('metadata', new Blob([metadata], { type: 'application/json' }));
+  if (file) fd.append('file', file);
+
+  try {
+    await api.updateDocument(docId, fd);
+    closeModal(); toast('Document updated!', 'success');
+    renderStudentDetail(studentId);
+  } catch (e) { toast(e.message || 'Update failed', 'error'); }
+}
 // ============ REGISTER ============
 async function renderRegisterForm(prefill) {
   try {

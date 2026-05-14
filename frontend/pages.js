@@ -215,8 +215,9 @@ const Pages = {
           </select>
         </div>
         <div class="doc-actions">
-          ${d.filePath ? `<button class="btn btn-primary btn-sm" onclick="viewDocument(${d.id},'${d.fileName || 'document'}')">👁 View</button>` : ''}
-          ${d.filePath ? `<button class="btn btn-info btn-sm" onclick="downloadDocument(${d.id},'${d.fileName || 'document'}')">⬇ Download</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="showEditDoc(${d.id}, ${fd.id}, '${d.documentType}', '${d.documentNumber || ''}')">✏️ Edit</button>
+          ${d.fileName ? `<button class="btn btn-primary btn-sm" onclick="viewDocument(${d.id},'${d.fileName || 'document'}')">👁 View</button>` : ''}
+          ${d.fileName ? `<button class="btn btn-info btn-sm" onclick="downloadDocument(${d.id},'${d.fileName || 'document'}')">⬇ Download</button>` : ''}
           <button class="btn btn-danger btn-sm" onclick="deleteDoc(${d.id},${fd.id})">🗑</button>
         </div>
       </div>`).join('')}
@@ -246,8 +247,9 @@ const Pages = {
           </select>
         </div>
         <div class="doc-actions">
-          ${pb.filePath ? `<button class="btn btn-primary btn-sm" onclick="viewDocument(${pb.id},'${pb.fileName || 'passbook'}')">👁 View</button>` : ''}
-          ${pb.filePath ? `<button class="btn btn-info btn-sm" onclick="downloadDocument(${pb.id},'${pb.fileName || 'passbook'}')">⬇ Download</button>` : ''}
+          <button class="btn btn-secondary btn-sm" onclick="showEditDoc(${pb.id}, ${fd.id}, '${pb.documentType}', '${pb.documentNumber || ''}')">✏️ Edit</button>
+          ${pb.fileName ? `<button class="btn btn-primary btn-sm" onclick="viewDocument(${pb.id},'${pb.fileName || 'passbook'}')">👁 View</button>` : ''}
+          ${pb.fileName ? `<button class="btn btn-info btn-sm" onclick="downloadDocument(${pb.id},'${pb.fileName || 'passbook'}')">⬇ Download</button>` : ''}
           <button class="btn btn-danger btn-sm" onclick="deleteDoc(${pb.id},${fd.id})">🗑 Delete</button>
         </div>
       </div>`;
