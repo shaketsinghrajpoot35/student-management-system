@@ -51,10 +51,14 @@ public class StudentServiceImpl implements StudentService {
     public StudentResponseDTO registerStudent(StudentRegistrationRequestDTO request,
                                              List<MultipartFile> files) {
         Admin admin = securityUtil.getCurrentAdmin();
+        if (!admin.isApproved()) {
+            throw new RuntimeException("Your account is pending approval by the School Admin.");
+        }
+        String sc = admin.getSchoolCode();
         log.info("Registering student with Samagra ID: {} for admin: {}", request.getPersonalInfo().getSamagraId(), admin.getUsername());
 
         String samagraIdHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(request.getPersonalInfo().getSamagraId());
-        if (studentRepository.existsBySamagraIdHashAndAdmin(samagraIdHash, admin)) {
+        if (studentRepository.existsBySamagraIdHashAndSchoolCode(samagraIdHash, sc)) {
             throw new DuplicateResourceException(
                     "Student already exists with Samagra ID: " + request.getPersonalInfo().getSamagraId());
         }
@@ -64,9 +68,9 @@ public class StudentServiceImpl implements StudentService {
         }
         
         String admHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(request.getAcademicInfo().getAdmissionNumber().trim());
-        if (studentRepository.existsByAdmNoHashAndAdmin(admHash, admin)) {
+        if (studentRepository.existsByAdmNoHashAndSchoolCode(admHash, sc)) {
             throw new DuplicateResourceException(
-                    "Admission Number already exists for your account: " + request.getAcademicInfo().getAdmissionNumber());
+                    "Admission Number already exists for your school: " + request.getAcademicInfo().getAdmissionNumber());
         }
 
         // Map & save student
@@ -173,6 +177,10 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public StudentResponseDTO updateStudent(Long id, StudentUpdateRequestDTO request,
                                            List<MultipartFile> files) {
+        Admin current = securityUtil.getCurrentAdmin();
+        if (!current.isApproved()) {
+            throw new RuntimeException("Your account is pending approval by the School Admin.");
+        }
         log.info("Updating student with ID: {}", id);
         Student student = findStudentById(id);
 
@@ -181,8 +189,9 @@ public class StudentServiceImpl implements StudentService {
             String newSamagraId = request.getPersonalInfo().getSamagraId();
             if (newSamagraId != null && !newSamagraId.equals(student.getSamagraId())) {
                 Admin admin = securityUtil.getCurrentAdmin();
+                String sc = admin.getSchoolCode();
                 String samagraIdHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(newSamagraId);
-                if (studentRepository.existsBySamagraIdHashAndAdmin(samagraIdHash, admin)) {
+                if (studentRepository.existsBySamagraIdHashAndSchoolCode(samagraIdHash, sc)) {
                     throw new DuplicateResourceException("Another student already exists with Samagra ID: " + newSamagraId);
                 }
             }
@@ -205,8 +214,9 @@ public class StudentServiceImpl implements StudentService {
             // Only check for duplicates if the admission number actually changed
             if (!newAdmNo.trim().equals(academic.getAdmissionNumber())) {
                 Admin admin = securityUtil.getCurrentAdmin();
-                if (studentRepository.existsByAdmNoHashAndAdmin(admHash, admin)) {
-                    throw new DuplicateResourceException("Admission Number already exists for your account: " + newAdmNo);
+                String sc = admin.getSchoolCode();
+                if (studentRepository.existsByAdmNoHashAndSchoolCode(admHash, sc)) {
+                    throw new DuplicateResourceException("Admission Number already exists for your school: " + newAdmNo);
                 }
             }
 
@@ -284,25 +294,37 @@ public class StudentServiceImpl implements StudentService {
     @Transactional(readOnly = true)
     public PagedResponseDTO<StudentResponseDTO> searchStudents(
             String name, String samagraId, String className,
-            String rollNumber, String admNo, Stream stream,
+            String section, String admNo, Stream stream,
             int page, int size, String sortBy, String sortDir) {
 
         Admin admin = securityUtil.getCurrentAdmin();
-        // Trim search inputs
+        if (!admin.isApproved()) {
+            throw new RuntimeException("Your account is pending approval by the School Admin.");
+        }
+        String schoolCode = admin.getSchoolCode();
+        
         final String fName = (name != null) ? name.trim() : null;
-        final String fSamagraId = (samagraId != null) ? samagraId.trim() : null;
-        final String fAdmNo = (admNo != null) ? admNo.trim() : null;
+        final String fSamagraId = (samagraId != null && !samagraId.trim().isEmpty()) ? samagraId.trim() : null;
+        final String fAdmNo = (admNo != null && !admNo.trim().isEmpty()) ? admNo.trim() : null;
 
-        log.info("Searching students for admin {}: name={}, samagraId={}, admNo={}", 
-                admin.getUsername(), fName, fSamagraId, fAdmNo);
+        log.info("Searching students for role {}: name={}, samagraId={}, admNo={}", 
+                admin.getRole(), fName, fSamagraId, fAdmNo);
         
         Sort sort = sortDir.equalsIgnoreCase("asc")
                 ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Page<Student> studentPage = studentRepository.searchStudents(
-                admin, fName, fSamagraId, className, rollNumber, fAdmNo, stream, pageable);
+        Page<Student> studentPage;
+        if ("ROLE_ADMIN".equals(admin.getRole())) {
+            studentPage = studentRepository.searchStudents(
+                    schoolCode, fName, fSamagraId, className, null, fAdmNo, stream, pageable
+            );
+        } else {
+            studentPage = studentRepository.searchStudentsByCreator(
+                    admin, fName, fSamagraId, className, section, fAdmNo, stream, pageable
+            );
+        }
         
         log.info("Search found {} results", studentPage.getTotalElements());
 
@@ -326,8 +348,24 @@ public class StudentServiceImpl implements StudentService {
     // ==========================================
     private Student findStudentById(Long id) {
         Admin admin = securityUtil.getCurrentAdmin();
-        return studentRepository.findByIdAndAdmin(id, admin)
+        if (!admin.isApproved()) {
+            throw new RuntimeException("Your account is pending approval by the School Admin.");
+        }
+        String schoolCode = admin.getSchoolCode();
+        
+        Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "id", id));
+        
+        if ("ROLE_ADMIN".equals(admin.getRole())) {
+            if (!student.getAdmin().getSchoolCode().equals(schoolCode)) {
+                throw new RuntimeException("Access denied: Student belongs to another school");
+            }
+        } else {
+            if (!student.getAdmin().getId().equals(admin.getId())) {
+                throw new RuntimeException("Access denied: You can only access students created by you.");
+            }
+        }
+        return student;
     }
 
     private List<Subject> resolveSubjects(List<SubjectDTO> subjectDTOs, Admin admin) {

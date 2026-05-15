@@ -31,7 +31,14 @@ public class Admin {
     @Column(name = "school_name", length = 150)
     private String schoolName;
 
+    @Column(name = "school_code", length = 20)
+    private String schoolCode;
+
     @Column(nullable = false, length = 20)
     @Builder.Default
     private String role = "ROLE_ADMIN";
+
+    @Column(name = "is_approved", nullable = false)
+    @Builder.Default
+    private boolean isApproved = true;
 }

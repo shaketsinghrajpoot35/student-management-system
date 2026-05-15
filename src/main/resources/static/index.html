@@ -8,7 +8,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
     rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=16" />
+  <link rel="stylesheet" href="style.css?v=17" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 
 <body>
@@ -29,13 +30,15 @@
           Student</a>
         <a class="nav-item" href="#subjects" onclick="navigate('subjects')"><span class="nav-icon">📚</span>
           Subjects</a>
+        <a class="nav-item admin-only" href="#staff" onclick="navigate('staff')"><span class="nav-icon">🛡️</span>
+          Staff Management</a>
       </nav>
       <div class="sidebar-footer">
         <div class="admin-info">
-          <div class="admin-avatar">A</div>
-          <div>
-            <div id="admin-name" class="admin-username">Admin</div>
-            <div class="admin-role">ROLE_ADMIN</div>
+          <div id="admin-name" style="font-weight:600;font-size:14px;color:white">Administrator</div>
+          <div style="display:flex; gap:6px; align-items:center">
+            <div class="admin-role" style="font-size:10px;background:rgba(255,255,255,0.1);padding:2px 6px;border-radius:4px;text-transform:uppercase">Admin</div>
+            <div id="school-code-display" style="font-size:10px;color:var(--text-muted);font-family:monospace"></div>
           </div>
         </div>
         <button class="btn-logout" onclick="logout()">Logout</button>
@@ -64,9 +67,9 @@
     </div>
   </div>
 
-  <script src="api.js?v=16"></script>
-  <script src="pages.js?v=16"></script>
-  <script src="app.js?v=16"></script>
+  <script src="api.js?v=17"></script>
+  <script src="pages.js?v=17"></script>
+  <script src="app.js?v=17"></script>
 </body>
 
 </html>

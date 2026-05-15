@@ -13,4 +13,10 @@ public interface StudentDocumentRepository extends JpaRepository<StudentDocument
     List<StudentDocument> findByStudentId(Long studentId);
     Optional<StudentDocument> findByStudentIdAndDocumentType(Long studentId, DocumentType documentType);
     void deleteByStudentId(Long studentId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(d) FROM StudentDocument d WHERE d.student.admin.schoolCode = :schoolCode")
+    long countBySchoolCode(@org.springframework.data.repository.query.Param("schoolCode") String schoolCode);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COUNT(d) FROM StudentDocument d WHERE d.student.admin = :admin")
+    long countByAdmin(@org.springframework.data.repository.query.Param("admin") com.smartstudent.main.entity.Admin admin);
 }

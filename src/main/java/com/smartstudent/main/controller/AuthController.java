@@ -12,6 +12,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.smartstudent.main.util.SecurityUtil;
+import com.smartstudent.main.entity.Admin;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -20,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final SecurityUtil securityUtil;
 
     /**
      * POST /api/auth/login
@@ -28,19 +31,17 @@ public class AuthController {
     public ResponseEntity<ApiResponseDTO<AuthResponseDTO>> login(
             @Valid @RequestBody LoginRequestDTO request) {
         log.info("Login request received for user: {}", request.getUsername());
-        AuthResponseDTO response = authService.login(request);
-        return ResponseEntity.ok(ApiResponseDTO.success("Login successful", response));
+        return ResponseEntity.ok(authService.authenticateAdmin(request));
     }
 
     /**
      * POST /api/auth/register
      */
     @PostMapping("/register")
-    public ResponseEntity<ApiResponseDTO<Void>> register(
+    public ResponseEntity<ApiResponseDTO<AuthResponseDTO>> register(
             @Valid @RequestBody com.smartstudent.main.dto.request.RegisterRequestDTO request) {
         log.info("Register request received for email: {}", request.getEmail());
-        authService.registerAdmin(request);
-        return ResponseEntity.ok(ApiResponseDTO.success("Admin registered successfully", null));
+        return ResponseEntity.ok(authService.registerAdmin(request));
     }
 
     @PostMapping("/forgot-password")
@@ -62,5 +63,19 @@ public class AuthController {
         log.info("Resetting password for: {}", request.getEmail());
         authService.resetPassword(request.getEmail(), request.getNewPassword());
         return ResponseEntity.ok(ApiResponseDTO.success("Password reset successfully", null));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<ApiResponseDTO<AuthResponseDTO>> getMe() {
+        Admin admin = securityUtil.getCurrentAdmin();
+        AuthResponseDTO response = AuthResponseDTO.builder()
+                .username(admin.getUsername())
+                .fullName(admin.getFullName())
+                .schoolName(admin.getSchoolName())
+                .role(admin.getRole())
+                .schoolCode(admin.getSchoolCode())
+                .isApproved(admin.isApproved())
+                .build();
+        return ResponseEntity.ok(ApiResponseDTO.success("Profile retrieved", response));
     }
 }

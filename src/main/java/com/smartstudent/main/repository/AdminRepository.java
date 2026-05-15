@@ -12,4 +12,7 @@ public interface AdminRepository extends JpaRepository<Admin, Long> {
     Optional<Admin> findByUsernameOrEmail(String username, String email);
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
+    Optional<Admin> findBySchoolCode(String schoolCode);
+    Optional<Admin> findBySchoolCodeAndRole(String schoolCode, String role);
+    java.util.List<Admin> findAllBySchoolCodeAndRole(String schoolCode, String role);
 }

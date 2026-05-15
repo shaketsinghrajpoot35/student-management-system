@@ -40,9 +40,59 @@ function navigate(page, id = null) {
     case 'edit': renderEditForm(id); break;
     case 'student-detail': renderStudentDetail(id); break;
     case 'subjects': renderSubjects(); break;
+    case 'staff': loadStaff(); break;
     case 'signup': renderSignup(); break;
     default: navigate('home');
   }
+}
+
+async function loadStaff() {
+  document.getElementById('page-container').innerHTML = Pages.staff();
+  try {
+    const res = await api.getStaff();
+    const staff = res.data;
+    const body = document.getElementById('staff-table-body');
+    if (!staff || staff.length === 0) {
+      body.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">No staff members found in your school.</td></tr>';
+      return;
+    }
+    body.innerHTML = staff.map(s => `
+      <tr>
+        <td>
+          <div style="font-weight:500">${s.fullName}</div>
+        </td>
+        <td>${s.username}</td>
+        <td>
+          <span class="badge ${s.isApproved ? 'badge-success' : 'badge-warning'}">
+            ${s.isApproved ? 'Approved' : 'Pending'}
+          </span>
+        </td>
+        <td style="text-align:right">
+          ${!s.isApproved ? `
+            <button class="btn btn-sm btn-success" onclick="approveStaff(${s.id})" style="padding:4px 8px; font-size:12px">Approve</button>
+          ` : ''}
+          <button class="btn btn-sm btn-danger" onclick="rejectStaff(${s.id})" style="padding:4px 8px; font-size:12px">Remove</button>
+        </td>
+      </tr>
+    `).join('');
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function approveStaff(id) {
+  try {
+    await api.approveStaff(id);
+    toast('Teacher approved!', 'success');
+    loadStaff();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+async function rejectStaff(id) {
+  if (!confirm('Are you sure you want to remove this teacher?')) return;
+  try {
+    await api.rejectStaff(id);
+    toast('Teacher removed!', 'success');
+    loadStaff();
+  } catch (e) { toast(e.message, 'error'); }
 }
 
 // ============ AUTH ============
@@ -57,6 +107,9 @@ async function doLogin() {
     localStorage.setItem('token', res.data.token);
     localStorage.setItem('adminName', res.data.fullName || res.data.username);
     localStorage.setItem('schoolName', res.data.schoolName || '');
+    localStorage.setItem('userRole', res.data.role || 'ROLE_ADMIN');
+    localStorage.setItem('schoolCode', res.data.schoolCode || '');
+    localStorage.setItem('isApproved', res.data.isApproved);
     showSidebar();
     navigate('dashboard');
   } catch (e) { showErr(errEl, e.message || 'Login failed'); }
@@ -79,6 +132,22 @@ function showSidebar() {
   document.getElementById('main-content').classList.remove('full-width');
   const name = localStorage.getItem('adminName');
   if (name) document.getElementById('admin-name').textContent = name;
+  const role = localStorage.getItem('userRole');
+  if (role) {
+    const roleEl = document.querySelector('.admin-role');
+    if (roleEl) roleEl.textContent = role.replace('ROLE_', '');
+    
+    // Show/hide admin only items
+    document.querySelectorAll('.admin-only').forEach(el => {
+      el.style.display = (role === 'ROLE_ADMIN') ? 'flex' : 'none';
+    });
+  }
+  const schoolCode = localStorage.getItem('schoolCode');
+  const scEl = document.getElementById('school-code-display');
+  if (scEl) {
+    scEl.textContent = schoolCode ? `Code: ${schoolCode}` : '';
+    scEl.title = "Share this code with your teachers to join your school";
+  }
   const schoolName = localStorage.getItem('schoolName');
   
   const brandEl = document.getElementById('brand-name-header');
@@ -117,38 +186,135 @@ function renderSignup() {
   document.getElementById('page-container').innerHTML = Pages.signup();
 }
 
+function toggleSchoolCode() {
+  const role = document.getElementById('su-role').value;
+  const codeGroup = document.getElementById('school-code-group');
+  const nameGroup = document.getElementById('school-name-group');
+  if (role === 'ROLE_TEACHER') {
+    codeGroup.style.display = 'block';
+    nameGroup.style.display = 'none';
+  } else {
+    codeGroup.style.display = 'none';
+    nameGroup.style.display = 'block';
+  }
+}
+
 async function doSignup() {
   const e = document.getElementById('su-email').value.trim();
   const p = document.getElementById('su-password').value.trim();
   const s = document.getElementById('su-school').value.trim();
+  const r = document.getElementById('su-role').value;
+  const sc = document.getElementById('su-school-code').value.trim();
   const errEl = document.getElementById('signup-error');
   errEl.style.display = 'none';
-  if (!e || !p || !s) { showErr(errEl, 'Please fill all fields'); return; }
+  
+  if (!e || !p) { showErr(errEl, 'Please fill email and password'); return; }
+  if (r === 'ROLE_ADMIN' && !s) { showErr(errEl, 'School Name is required for Admins'); return; }
+  if (r === 'ROLE_TEACHER' && !sc) { showErr(errEl, 'School Code is required for Teachers'); return; }
+
   try {
-    await api.register(e, p, s);
-    toast('Registration successful! Please login.', 'success');
-    navigate('login');
+    const res = await api.register(e, p, s, r, sc);
+    if (res.data && res.data.token) {
+        localStorage.setItem('token', res.data.token);
+        localStorage.setItem('adminName', res.data.fullName || res.data.username);
+        localStorage.setItem('schoolName', res.data.schoolName || '');
+        localStorage.setItem('userRole', res.data.role || 'ROLE_ADMIN');
+        localStorage.setItem('schoolCode', res.data.schoolCode || '');
+        localStorage.setItem('isApproved', res.data.isApproved);
+        toast('Registration successful!', 'success');
+        showSidebar();
+        navigate('dashboard');
+    } else {
+        toast('Registration successful! Please login.', 'success');
+        navigate('login');
+    }
   } catch (err) {
     showErr(errEl, err.message || 'Registration failed');
   }
 }
 
 // ============ DASHBOARD ============
-async function renderDashboard() {
+async function syncApprovalStatus() {
   try {
-    const [studRes, subRes] = await Promise.all([api.getStudents('size=5&sortBy=createdAt&sortDir=desc'), api.getAllSubjects()]);
-    const all = await api.getStudents('size=1000');
-    const active = (all.data?.content || []).filter(s => s.studentStatus === 'ACTIVE').length;
-    const stats = { total: studRes.data?.totalElements || 0, active, subjects: subRes.data?.length || 0, docs: 0 };
+    const res = await api.getMe();
+    localStorage.setItem('isApproved', res.data.isApproved);
+  } catch (e) { console.error("Status sync failed", e); }
+}
+
+async function renderDashboard() {
+  await syncApprovalStatus();
+  try {
+    const res = await api.getDashboardAnalytics();
+    const stats = res.data || {};
     document.getElementById('page-container').innerHTML = Pages.dashboard(stats);
-    const recent = studRes.data?.content || [];
-    document.getElementById('recent-list').innerHTML = recent.length === 0
-      ? '<p style="color:var(--text-muted);font-size:13px">No students yet.</p>'
-      : recent.map(s => `<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">
-          <div><strong style="font-size:13px">${s.fullName}</strong><br><span style="font-size:11px;color:var(--text-muted)">${s.samagraId}</span></div>
-          <button class="btn btn-secondary btn-sm" onclick="navigate('student-detail',${s.id})">View</button>
-        </div>`).join('');
-  } catch (e) { toast(e.message, 'error'); }
+    
+    // Render Charts
+    renderCharts(stats);
+  } catch (e) { 
+    console.error(e);
+    toast(e.message, 'error'); 
+  }
+}
+
+function renderCharts(stats) {
+  const streamCtx = document.getElementById('streamChart');
+  const classCtx = document.getElementById('classChart');
+  
+  if (!streamCtx || !classCtx) return;
+
+  // Stream Chart (Pie)
+  new Chart(streamCtx, {
+    type: 'pie',
+    data: {
+      labels: Object.keys(stats.studentsPerStream || {}),
+      datasets: [{
+        data: Object.values(stats.studentsPerStream || {}),
+        backgroundColor: [
+          '#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b', '#10b981', '#06b6d4'
+        ],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#94a3b8', font: { family: 'Inter' } } }
+      }
+    }
+  });
+
+  // Class Chart (Bar)
+  new Chart(classCtx, {
+    type: 'bar',
+    data: {
+      labels: Object.keys(stats.studentsPerClass || {}),
+      datasets: [{
+        label: 'Students',
+        data: Object.values(stats.studentsPerClass || {}),
+        backgroundColor: '#6366f1',
+        borderRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: { 
+          beginAtZero: true, 
+          ticks: { color: '#94a3b8' },
+          grid: { color: 'rgba(255,255,255,0.05)' }
+        },
+        x: { 
+          ticks: { color: '#94a3b8' },
+          grid: { display: false }
+        }
+      }
+    }
+  });
 }
 
 // ============ STUDENTS LIST ============

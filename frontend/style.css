@@ -53,7 +53,7 @@ input, select, textarea { font-family: var(--font); }
 }
 .sidebar.hidden { display: none; }
 
-.main-content { margin-left: var(--sidebar-w); flex: 1; min-height: 100vh; padding: 32px; overflow-x: hidden; }
+.main-content { margin-left: var(--sidebar-w); flex: 1; min-height: 100vh; padding: 0 32px 32px 32px; overflow-x: hidden; }
 .main-content.full-width { margin-left: 0; }
 
 /* ---- SIDEBAR ---- */
@@ -304,6 +304,8 @@ tr:hover td { background: var(--bg-card); }
   z-index: 10;
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
+  margin-bottom: 24px;
+  border-radius: 0 0 var(--radius) var(--radius);
 }
 .top-header.hidden { display: none; }
 

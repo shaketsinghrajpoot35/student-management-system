@@ -128,6 +128,7 @@ public class StudentController {
      * DELETE /api/students/{id}
      */
     @DeleteMapping("/{id}")
+    @org.springframework.security.access.prepost.PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ApiResponseDTO<Void>> deleteStudent(@PathVariable Long id) {
         log.info("Delete request for student ID: {}", id);
         studentService.deleteStudent(id);

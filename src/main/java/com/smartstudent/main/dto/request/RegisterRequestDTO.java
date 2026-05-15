@@ -14,6 +14,9 @@ public class RegisterRequestDTO {
     @NotBlank(message = "Password is required")
     private String password;
 
-    @NotBlank(message = "School name is required")
     private String schoolName;
+
+    private String role; // Optional: ROLE_ADMIN or ROLE_TEACHER
+
+    private String schoolCode; // For Teachers to join an existing school
 }

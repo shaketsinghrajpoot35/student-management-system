@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.smartstudent.main.dto.request.RegisterRequestDTO;
+import com.smartstudent.main.dto.response.ApiResponseDTO;
 import com.smartstudent.main.exception.ResourceNotFoundException;
 
 import com.smartstudent.main.service.EmailService;
@@ -40,50 +41,83 @@ public class AuthServiceImpl implements AuthService {
     @Value("${jwt.expiration}")
     private Long jwtExpiration;
 
+
+
     @Override
-    public AuthResponseDTO login(LoginRequestDTO request) {
-        log.info("Login attempt for user: {}", request.getUsername());
+    public ApiResponseDTO<AuthResponseDTO> registerAdmin(RegisterRequestDTO request) {
+        if (adminRepository.existsByEmail(request.getEmail())) {
+            return ApiResponseDTO.error("Email already registered");
+        }
 
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getUsername(), request.getPassword()));
+        String role = request.getRole() != null ? request.getRole() : "ROLE_ADMIN";
+        String schoolName = request.getSchoolName();
+        String schoolCode = null;
 
-        String token = jwtUtil.generateToken(authentication.getName());
+        if ("ROLE_TEACHER".equals(role)) {
+            if (request.getSchoolCode() == null || request.getSchoolCode().isEmpty()) {
+                return ApiResponseDTO.error("School Code is required for Teacher registration");
+            }
+            Admin parentAdmin = adminRepository.findBySchoolCodeAndRole(request.getSchoolCode(), "ROLE_ADMIN")
+                    .orElseThrow(() -> new RuntimeException("Invalid School Code or School not found"));
+            schoolName = parentAdmin.getSchoolName();
+            schoolCode = parentAdmin.getSchoolCode();
+        } else {
+            // Generate unique school code for new Admin
+            do {
+                schoolCode = java.util.UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+            } while (adminRepository.findBySchoolCode(schoolCode).isPresent());
+        }
 
-        Admin admin = adminRepository.findByUsernameOrEmail(request.getUsername(), request.getUsername())
-                .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
+        Admin admin = Admin.builder()
+                .username(request.getEmail())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .fullName(request.getEmail().split("@")[0])
+                .schoolName(schoolName)
+                .schoolCode(schoolCode)
+                .role(role)
+                .isApproved("ROLE_ADMIN".equals(role))
+                .build();
 
-        log.info("Login successful for user: {}", request.getUsername());
+        adminRepository.save(admin);
 
-        return AuthResponseDTO.builder()
+        String token = jwtUtil.generateToken(admin.getUsername());
+        AuthResponseDTO response = AuthResponseDTO.builder()
                 .token(token)
-                .tokenType("Bearer")
                 .username(admin.getUsername())
                 .fullName(admin.getFullName())
                 .schoolName(admin.getSchoolName())
                 .role(admin.getRole())
+                .schoolCode(admin.getSchoolCode())
+                .isApproved(admin.isApproved())
                 .expiresIn(jwtExpiration)
                 .build();
+
+        return ApiResponseDTO.success("Registration successful", response);
     }
 
     @Override
-    public void registerAdmin(RegisterRequestDTO request) {
-        log.info("Registering new admin with email: {}", request.getEmail());
-        if (adminRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("Email is already registered");
-        }
-        
-        Admin newAdmin = Admin.builder()
-                .username(request.getEmail())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .fullName("Administrator")
-                .schoolName(request.getSchoolName())
-                .role("ROLE_ADMIN")
+    public ApiResponseDTO<AuthResponseDTO> authenticateAdmin(LoginRequestDTO request) {
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+        );
+
+        Admin admin = adminRepository.findByUsernameOrEmail(request.getUsername(), request.getUsername())
+                .orElseThrow();
+
+        String token = jwtUtil.generateToken(admin.getUsername());
+        AuthResponseDTO response = AuthResponseDTO.builder()
+                .token(token)
+                .username(admin.getUsername())
+                .fullName(admin.getFullName())
+                .schoolName(admin.getSchoolName())
+                .role(admin.getRole())
+                .schoolCode(admin.getSchoolCode())
+                .isApproved(admin.isApproved())
+                .expiresIn(jwtExpiration)
                 .build();
-        
-        adminRepository.save(newAdmin);
-        log.info("Admin registered successfully: {}", request.getEmail());
+
+        return ApiResponseDTO.success("Login successful", response);
     }
 
     @Override
@@ -134,23 +168,39 @@ public class AuthServiceImpl implements AuthService {
         log.info("Resetting password for email: {}", email);
         // Optionally re-verify OTP here or check if a verified token exists.
         // Assuming OTP was verified recently, we just update the password and clean up the token.
-        
-        OtpToken otpToken = otpTokenRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("No active password reset session"));
-
-        if (otpToken.getExpiryDate().isBefore(LocalDateTime.now())) {
-            otpTokenRepository.delete(otpToken);
-            throw new IllegalArgumentException("Password reset session expired. Request a new OTP.");
-        }
-
         Admin admin = adminRepository.findByUsernameOrEmail(email, email)
-                .orElseThrow(() -> new ResourceNotFoundException("Admin not found"));
-
+                .orElseThrow(() -> new ResourceNotFoundException("Admin not found with email: " + email));
         admin.setPassword(passwordEncoder.encode(newPassword));
         adminRepository.save(admin);
-        
-        // Clean up OTP token
-        otpTokenRepository.delete(otpToken);
-        log.info("Password reset successfully for email: {}", email);
+    }
+
+    @Override
+    public java.util.List<AuthResponseDTO> getStaffBySchool(String schoolCode) {
+        return adminRepository.findAllBySchoolCodeAndRole(schoolCode, "ROLE_TEACHER")
+                .stream()
+                .map(admin -> AuthResponseDTO.builder()
+                        .id(admin.getId())
+                        .username(admin.getUsername())
+                        .fullName(admin.getFullName())
+                        .schoolName(admin.getSchoolName())
+                        .role(admin.getRole())
+                        .isApproved(admin.isApproved())
+                        .build())
+                .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
+    public void approveStaff(Long staffId) {
+        Admin staff = adminRepository.findById(staffId)
+                .orElseThrow(() -> new ResourceNotFoundException("Staff not found"));
+        staff.setApproved(true);
+        adminRepository.save(staff);
+    }
+
+    @Override
+    public void rejectStaff(Long staffId) {
+        Admin staff = adminRepository.findById(staffId)
+                .orElseThrow(() -> new ResourceNotFoundException("Staff not found"));
+        adminRepository.delete(staff);
     }
 }

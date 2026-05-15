@@ -39,8 +39,20 @@ public class StudentDocumentServiceImpl implements StudentDocumentService {
     public DocumentResponseDTO uploadDocument(Long studentId, DocumentDTO dto, MultipartFile file) {
         Admin admin = securityUtil.getCurrentAdmin();
         log.info("Uploading document {} for student {}", dto.getDocumentType(), studentId);
-        Student student = studentRepository.findByIdAndAdmin(studentId, admin)
+        
+        Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "id", studentId));
+
+        // Check permission: Teacher must own student, Admin must be in same school
+        if ("ROLE_TEACHER".equals(admin.getRole())) {
+            if (student.getAdmin() == null || !student.getAdmin().getId().equals(admin.getId())) {
+                throw new RuntimeException("Access denied: You do not own this student record");
+            }
+        } else {
+            if (student.getAdmin() != null && !student.getAdmin().getSchoolCode().equals(admin.getSchoolCode())) {
+                throw new RuntimeException("Access denied: Student belongs to a different school");
+            }
+        }
 
         StudentDocument document = documentMapper.toEntity(dto);
         document.setStudent(student);
@@ -70,9 +82,19 @@ public class StudentDocumentServiceImpl implements StudentDocumentService {
     @Transactional(readOnly = true)
     public List<DocumentResponseDTO> getDocumentsByStudentId(Long studentId) {
         Admin admin = securityUtil.getCurrentAdmin();
-        // Verify student belongs to admin
-        studentRepository.findByIdAndAdmin(studentId, admin)
+        Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Student", "id", studentId));
+
+        // Check permission
+        if ("ROLE_TEACHER".equals(admin.getRole())) {
+            if (student.getAdmin() == null || !student.getAdmin().getId().equals(admin.getId())) {
+                throw new RuntimeException("Access denied to this student's documents");
+            }
+        } else {
+            if (student.getAdmin() != null && !student.getAdmin().getSchoolCode().equals(admin.getSchoolCode())) {
+                throw new RuntimeException("Access denied: Student belongs to a different school");
+            }
+        }
 
         return documentRepository.findByStudentId(studentId).stream()
                 .map(documentMapper::toResponseDTO)
@@ -141,9 +163,18 @@ public class StudentDocumentServiceImpl implements StudentDocumentService {
         Admin admin = securityUtil.getCurrentAdmin();
         StudentDocument document = documentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Document", "id", id));
-        if (document.getStudent() != null && document.getStudent().getAdmin() != null &&
-            !document.getStudent().getAdmin().getId().equals(admin.getId())) {
-            throw new RuntimeException("Access denied to this document");
+        
+        Student student = document.getStudent();
+        if (student != null && student.getAdmin() != null) {
+            if ("ROLE_TEACHER".equals(admin.getRole())) {
+                if (!student.getAdmin().getId().equals(admin.getId())) {
+                    throw new RuntimeException("Access denied to this document");
+                }
+            } else {
+                if (!student.getAdmin().getSchoolCode().equals(admin.getSchoolCode())) {
+                    throw new RuntimeException("Access denied: This document belongs to another school");
+                }
+            }
         }
         return document;
     }

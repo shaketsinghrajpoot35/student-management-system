@@ -134,8 +134,19 @@ const Pages = {
       <input id="su-password" class="form-control" placeholder="••••••••" type="password"/>
     </div>
     <div class="form-group">
+      <label class="form-label">Role</label>
+      <select id="su-role" class="form-control" onchange="toggleSchoolCode()">
+        <option value="ROLE_ADMIN">Admin (Create New School)</option>
+        <option value="ROLE_TEACHER">Teacher (Join Existing School)</option>
+      </select>
+    </div>
+    <div id="school-name-group" class="form-group">
       <label class="form-label">School Name</label>
       <input id="su-school" class="form-control" placeholder="e.g. Springfield High School" type="text"/>
+    </div>
+    <div id="school-code-group" class="form-group" style="display:none">
+      <label class="form-label">School Code (Required for Teachers)</label>
+      <input id="su-school-code" class="form-control" placeholder="Enter 8-digit code" type="text"/>
     </div>
     <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doSignup()">Create Account</button>
     <div style="margin-top:16px;text-align:center;font-size:14px;color:var(--text-muted)">
@@ -144,33 +155,81 @@ const Pages = {
   </div>
 </div>`,
 
+  dashboard: (stats) => {
+    const isApproved = localStorage.getItem('isApproved') === 'true';
+    const role = localStorage.getItem('userRole');
+    
+    return `
+    <div class="container animate-in">
+      ${(!isApproved && role === 'ROLE_TEACHER') ? `
+        <div style="background:rgba(255,193,7,0.1); border:1px solid #ffc107; padding:16px; border-radius:8px; margin-bottom:24px; color:#d39e00; display:flex; align-items:center; gap:12px">
+          <span style="font-size:24px">⚠️</span>
+          <div>
+            <div style="font-weight:600">Pending Approval</div>
+            <div style="font-size:14px">Your account is currently waiting for administrator approval. You can view existing data but cannot add or modify records yet.</div>
+          </div>
+        </div>
+      ` : ''}
+      <div class="page-header">
+        <div><div class="page-title">Dashboard</div><div class="page-subtitle">Welcome back, ${localStorage.getItem('adminName') || 'Administrator'}</div></div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value">${stats.totalStudents || 0}</div><div class="stat-label">Total Students</div></div>
+        <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value">${stats.activeStudents || 0}</div><div class="stat-label">Active Students</div></div>
+        <div class="stat-card"><div class="stat-icon">📚</div><div class="stat-value">${stats.totalSubjects || 0}</div><div class="stat-label">Total Subjects</div></div>
+        <div class="stat-card"><div class="stat-icon">📁</div><div class="stat-value">${stats.totalDocuments || 0}</div><div class="stat-label">Documents Uploaded</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));gap:24px;margin-top:24px">
+        <div class="card">
+          <div class="card-header"><span class="card-title">Students by Stream</span></div>
+          <div style="height:300px; display:flex; justify-content:center; align-items:center;">
+            <canvas id="streamChart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">Students by Class</span></div>
+          <div style="height:300px; display:flex; justify-content:center; align-items:center;">
+            <canvas id="classChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:24px">
+        <div class="card-header"><span class="card-title">Quick Actions</span></div>
+        <div style="display:flex; gap:12px; flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="navigate('register')">➕ Register New Student</button>
+          <button class="btn btn-secondary" onclick="navigate('students')">👥 View All Students</button>
+          <button class="btn btn-secondary" onclick="navigate('subjects')">📚 Manage Subjects</button>
+        </div>
+      </div>
+    </div>`;
+  },
 
-  dashboard: (stats) => `
-<div class="fade-in">
-  <div class="page-header">
-    <div><div class="page-title">Dashboard</div><div class="page-subtitle">Welcome back, Administrator</div></div>
-  </div>
-  <div class="stats-grid">
-    <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value">${stats.total || 0}</div><div class="stat-label">Total Students</div></div>
-    <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value">${stats.active || 0}</div><div class="stat-label">Active Students</div></div>
-    <div class="stat-card"><div class="stat-icon">📚</div><div class="stat-value">${stats.subjects || 0}</div><div class="stat-label">Total Subjects</div></div>
-    <div class="stat-card"><div class="stat-icon">📁</div><div class="stat-value">${stats.docs || 0}</div><div class="stat-label">Documents Uploaded</div></div>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;flex-wrap:wrap">
-    <div class="card">
-      <div class="card-header"><span class="card-title">Quick Actions</span></div>
-      <div style="display:flex;flex-direction:column;gap:10px">
-        <button class="btn btn-primary" onclick="navigate('register')">➕ Register New Student</button>
-        <button class="btn btn-secondary" onclick="navigate('students')">👥 View All Students</button>
-        <button class="btn btn-secondary" onclick="navigate('subjects')">📚 Manage Subjects</button>
+  staff: () => `
+    <div class="container animate-in">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Staff Management</h1>
+          <p class="page-subtitle">Review and manage teacher access for your school</p>
+        </div>
+      </div>
+
+      <div class="card" style="padding:0; overflow:hidden">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Status</th>
+              <th style="text-align:right">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="staff-table-body">
+            <tr><td colspan="4" style="text-align:center;padding:40px;color:var(--text-muted)">Loading staff...</td></tr>
+          </tbody>
+        </table>
       </div>
     </div>
-    <div class="card">
-      <div class="card-header"><span class="card-title">Recent Students</span></div>
-      <div id="recent-list"><div class="loading"><div class="spinner"></div></div></div>
-    </div>
-  </div>
-</div>`,
+  `,
 
   students: (data, search) => `
 <div class="fade-in">
@@ -188,7 +247,7 @@ const Pages = {
       <input id="s-admNo" class="form-control" style="width:140px" placeholder="Admission No" value="${search.admNo || ''}" onkeyup="if(event.key==='Enter') searchStudents()"/>
       <select id="s-class" class="form-control" style="width:130px" onchange="searchStudents()">
         <option value="">All Classes</option>
-        ${['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Undergraduate', 'Postgraduate', 'Diploma', 'PhD', 'Other'].map(v => `<option ${search.className === v ? 'selected' : ''} value="${v}">${v}</option>`).join('')}
+        ${['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Undergraduate', 'Postgraduate', 'Diploma', 'PhD', 'Other'].map(v => `<option ${search.className === v ? 'selected' : ''} value="${v}">${v || 'Select'}</option>`).join('')}
       </select>
       <select id="s-stream" class="form-control" style="width:130px" onchange="searchStudents()">
         <option value="">All Streams</option>
@@ -214,7 +273,7 @@ const Pages = {
               <button class="btn btn-info btn-sm" onclick="downloadRegistrationForm(${s.id})">📄 PDF</button>
               <button class="btn btn-info btn-sm" onclick="navigate('student-detail',${s.id})">👁 View</button>
               <button class="btn btn-secondary btn-sm" onclick="navigate('edit',${s.id})">✏️ Edit</button>
-              <button class="btn btn-danger btn-sm" onclick="confirmDelete(${s.id},'${s.fullName}')">🗑</button>
+              ${localStorage.getItem('userRole') === 'ROLE_ADMIN' ? `<button class="btn btn-danger btn-sm" onclick="confirmDelete(${s.id},'${s.fullName}')">🗑</button>` : ''}
             </div></td>
           </tr>`).join('')}
         </tbody>
@@ -241,7 +300,7 @@ const Pages = {
       <td>
         <div class="td-actions">
           <button class="btn btn-secondary btn-sm" onclick="showEditSubject(${s.id}, '${s.subjectName}', '${s.subjectCode || ''}', '${s.description || ''}')">✏️ Edit</button>
-          <button class="btn btn-danger btn-sm" onclick="confirmDeleteSubject(${s.id}, '${s.subjectName}')">🗑 Delete</button>
+          ${localStorage.getItem('userRole') === 'ROLE_ADMIN' ? `<button class="btn btn-danger btn-sm" onclick="confirmDeleteSubject(${s.id}, '${s.subjectName}')">🗑 Delete</button>` : ''}
         </div>
       </td>
     </tr>`).join('')}</tbody>
@@ -313,7 +372,7 @@ const Pages = {
           <button class="btn btn-secondary btn-sm" onclick="showEditDoc(${d.id}, ${s.id}, '${d.documentType}', '${d.documentNumber || ''}')">✏️ Edit</button>
           ${d.fileName ? `<button class="btn btn-primary btn-sm" onclick="viewDocument(${d.id},'${d.fileName || 'document'}')">👁 View</button>` : ''}
           ${d.fileName ? `<button class="btn btn-info btn-sm" onclick="downloadDocument(${d.id},'${d.fileName || 'document'}')">⬇ Download</button>` : ''}
-          <button class="btn btn-danger btn-sm" onclick="deleteDoc(${d.id},${s.id})">🗑 Delete</button>
+          ${localStorage.getItem('userRole') === 'ROLE_ADMIN' ? `<button class="btn btn-danger btn-sm" onclick="deleteDoc(${d.id},${s.id})">🗑 Delete</button>` : ''}
         </div>
       </div>`).join('')}
     </div>
@@ -345,7 +404,7 @@ const Pages = {
           <button class="btn btn-secondary btn-sm" onclick="showEditDoc(${pb.id}, ${s.id}, '${pb.documentType}', '${pb.documentNumber || ''}')">✏️ Edit</button>
           ${pb.fileName ? `<button class="btn btn-primary btn-sm" onclick="viewDocument(${pb.id},'${pb.fileName || 'passbook'}')">👁 View</button>` : ''}
           ${pb.fileName ? `<button class="btn btn-info btn-sm" onclick="downloadDocument(${pb.id},'${pb.fileName || 'passbook'}')">⬇ Download</button>` : ''}
-          <button class="btn btn-danger btn-sm" onclick="deleteDoc(${pb.id},${s.id})">🗑 Delete</button>
+          ${localStorage.getItem('userRole') === 'ROLE_ADMIN' ? `<button class="btn btn-danger btn-sm" onclick="deleteDoc(${pb.id},${s.id})">🗑 Delete</button>` : ''}
         </div>
       </div>`;
         return `

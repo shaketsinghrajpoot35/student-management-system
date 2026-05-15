@@ -38,10 +38,16 @@ const api = {
 
   // AUTH
   login: (u, p) => api.post('/api/auth/login', { username: u, password: p }),
-  register: (email, password, schoolName) => api.post('/api/auth/register', { email, password, schoolName }),
+  register: (email, password, schoolName, role, schoolCode) => api.post('/api/auth/register', { email, password, schoolName, role, schoolCode }),
+  getMe: () => api.get('/api/auth/me'),
   forgotPassword: (email) => api.post('/api/auth/forgot-password', { email }),
   verifyOtp: (email, otp) => api.post('/api/auth/verify-otp', { email, otp }),
   resetPassword: (email, newPassword) => api.post('/api/auth/reset-password', { email, newPassword }),
+
+  // STAFF
+  getStaff: () => api.get('/api/staff'),
+  approveStaff: (id) => api.post(`/api/staff/${id}/approve`),
+  rejectStaff: (id) => api.post(`/api/staff/${id}/reject`),
 
   // STUDENTS
   getStudents: (params = '') => api.get(`/api/students?${params}`),
@@ -87,4 +93,7 @@ const api = {
   // BANK
   getBank: (studentId) => api.get(`/api/bank-details/${studentId}`),
   updateBank: (id, body) => api.put(`/api/bank-details/${id}`, body),
+
+  // DASHBOARD
+  getDashboardAnalytics: () => api.get('/api/dashboard/analytics'),
 };

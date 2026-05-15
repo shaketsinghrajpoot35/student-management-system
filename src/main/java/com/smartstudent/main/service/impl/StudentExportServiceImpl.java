@@ -47,7 +47,7 @@ public class StudentExportServiceImpl implements StudentExportService {
 
         // Fetch all matching students (max 5000 for safety)
         Page<Student> studentsPage = studentRepository.searchStudents(
-                admin, searchName, samagraIdHash, searchClassName, null, admissionNumberHash, stream, 
+                admin.getSchoolCode(), searchName, samagraIdHash, searchClassName, null, admissionNumberHash, stream, 
                 PageRequest.of(0, 5000, Sort.by("fullName").ascending())
         );
         List<Student> students = studentsPage.getContent();
