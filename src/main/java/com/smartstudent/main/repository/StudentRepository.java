@@ -24,11 +24,11 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
             SELECT s FROM Student s
             LEFT JOIN s.academicDetails ad
             WHERE s.admin = :admin
-              AND (:name IS NULL OR LOWER(s.fullName) LIKE LOWER(CONCAT('%', :name, '%')))
-               AND (:samagraId IS NULL OR LOWER(s.samagraIdSearch) LIKE LOWER(CONCAT('%', :samagraId, '%')))
-               AND (:className IS NULL OR ad.className = :className)
-               AND (:rollNumber IS NULL OR ad.rollNumber = :rollNumber)
-               AND (:admissionNumber IS NULL OR LOWER(ad.admNoSearch) LIKE LOWER(CONCAT('%', :admissionNumber, '%')))
+              AND (:name IS NULL OR :name = '' OR LOWER(s.fullName) LIKE LOWER(CONCAT('%', :name, '%')))
+              AND (:samagraId IS NULL OR :samagraId = '' OR LOWER(s.samagraIdSearch) LIKE LOWER(CONCAT('%', :samagraId, '%')))
+              AND (:className IS NULL OR :className = '' OR ad.className = :className)
+              AND (:rollNumber IS NULL OR :rollNumber = '' OR ad.rollNumber = :rollNumber)
+              AND (:admNo IS NULL OR :admNo = '' OR LOWER(s.admNoSearch) LIKE LOWER(CONCAT('%', :admNo, '%')))
               AND (:stream IS NULL OR ad.stream = :stream)
             """)
     Page<Student> searchStudents(
@@ -37,8 +37,10 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
             @Param("samagraId") String samagraId,
             @Param("className") String className,
             @Param("rollNumber") String rollNumber,
-            @Param("admissionNumber") String admissionNumber,
+            @Param("admNo") String admNo,
             @Param("stream") Stream stream,
             Pageable pageable
     );
+
+    boolean existsByAdmNoHashAndAdmin(String admNoHash, com.smartstudent.main.entity.Admin admin);
 }

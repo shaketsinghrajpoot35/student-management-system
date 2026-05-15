@@ -84,13 +84,9 @@ public class StudentDocumentController {
         String contentType = documentService.getDocumentContentType(id);
         String fileName = documentService.getDocumentFileName(id);
 
-        ContentDisposition contentDisposition = ContentDisposition.attachment()
-                .filename(fileName)
-                .build();
-
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))
-                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
                 .body(resource);
     }
 }

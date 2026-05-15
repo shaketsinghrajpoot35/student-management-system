@@ -2,13 +2,97 @@
 
 const Pages = {
 
+  home: () => `
+<div class="home-page fade-in">
+  <nav class="home-nav">
+    <div class="logo" onclick="navigate('home')">
+      <span class="logo-icon">🎓</span>
+      <span class="logo-text">SmartStudent</span>
+    </div>
+    <div class="nav-links">
+      <button class="btn btn-secondary" onclick="navigate('login')">Login</button>
+      <button class="btn btn-primary" onclick="navigate('signup')">Sign Up</button>
+    </div>
+  </nav>
+
+  <section class="hero-section">
+    <div class="hero-content">
+      <h1 class="hero-title">Modern Student Management <span class="text-gradient">Redefined</span></h1>
+      <p class="hero-subtitle">Secure, encrypted, and lightning-fast record management for modern educational institutions. Manage students, documents, and academic records with military-grade security.</p>
+      <div class="hero-btns">
+        <button class="btn btn-primary btn-lg" onclick="navigate('signup')">Get Started for Free</button>
+        <button class="btn btn-secondary btn-lg" onclick="navigate('login')">Admin Portal</button>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="glass-card visual-card">
+        <div class="visual-header">
+          <div class="dot red"></div><div class="dot yellow"></div><div class="dot green"></div>
+        </div>
+        <div class="visual-body">
+          <div class="skeleton-line long"></div>
+          <div class="skeleton-line medium"></div>
+          <div class="skeleton-grid">
+            <div class="skeleton-box"></div><div class="skeleton-box"></div><div class="skeleton-box"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="features-section">
+    <div class="feature-card glass-card">
+      <div class="feature-icon">🛡️</div>
+      <h3>End-to-End Encryption</h3>
+      <p>Your student data is protected with AES-256-GCM encryption at rest and in transit.</p>
+    </div>
+    <div class="feature-card glass-card">
+      <div class="feature-icon">📁</div>
+      <h3>Document Vault</h3>
+      <p>Securely store Aadhaar, Marksheets, and Certificates directly in the cloud database.</p>
+    </div>
+    <div class="feature-card glass-card">
+      <div class="feature-icon">📊</div>
+      <h3>Advanced Search</h3>
+      <p>Find records instantly using blind indexing and multi-field filtering.</p>
+    </div>
+  </section>
+
+  <footer class="home-footer">
+    <div class="footer-content">
+      <div class="footer-brand">
+        <div class="logo">
+          <span class="logo-icon">🎓</span>
+          <span class="logo-text">SmartStudent</span>
+        </div>
+        <p>Built for security-first schools by <strong>Shaket Singh Rajpoot</strong>.</p>
+      </div>
+      <div class="footer-social">
+        <h4>Connect with me</h4>
+        <div class="social-links">
+          <a href="https://github.com/shaketsinghrajpoot35" target="_blank" class="social-icon">GitHub</a>
+          <a href="https://linkedin.com/in/shaket-singh-rajpoot" target="_blank" class="social-icon">LinkedIn</a>
+          <a href="https://twitter.com/shaket_rajpoot" target="_blank" class="social-icon">Twitter</a>
+          <a href="https://www.instagram.com/shaket_.singh_rajpoot24?igsh=MWdlODM5dXJqaXNjYg==" target="_blank" class="social-icon">Instagram</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      &copy; 2026 SmartStudent | Developed by <strong>Shaket Singh Rajpoot</strong>
+    </div>
+  </footer>
+</div>`,
+
   login: () => `
 <div class="login-page">
   <div class="login-card fade-in">
     <div class="login-logo">
-      <span class="icon">🎓</span>
-      <h1>SmartStudent</h1>
-      <p>Secure Admin Portal</p>
+      <div class="logo" onclick="navigate('home')" style="justify-content:center;margin-bottom:24px">
+        <span class="logo-icon" style="font-size:40px">🎓</span>
+        <span class="logo-text" style="font-size:24px">SmartStudent</span>
+      </div>
+      <h1>Admin Login</h1>
+      <p>Secure Access to Portal</p>
     </div>
     <div id="login-error" class="login-error"></div>
     <div class="form-group">
@@ -30,9 +114,12 @@ const Pages = {
 <div class="login-page">
   <div class="login-card fade-in">
     <div class="login-logo">
-      <span class="icon">🎓</span>
-      <h1>SmartStudent</h1>
-      <p>Admin Registration</p>
+      <div class="logo" onclick="navigate('home')" style="justify-content:center;margin-bottom:24px">
+        <span class="logo-icon" style="font-size:40px">🎓</span>
+        <span class="logo-text" style="font-size:24px">SmartStudent</span>
+      </div>
+      <h1>Sign Up</h1>
+      <p>Create School Admin Account</p>
     </div>
     <div id="signup-error" class="login-error"></div>
     <div class="form-group">
@@ -93,13 +180,14 @@ const Pages = {
   </div>
   <div class="card">
     <div class="search-row">
-      <input id="s-name" class="form-control search-input" placeholder="Search by name..." value="${search.name || ''}" oninput="debounceSearch()"/>
-      <input id="s-samagra" class="form-control" style="width:160px" placeholder="Samagra ID" value="${search.samagraId || ''}"/>
-      <select id="s-class" class="form-control" style="width:130px">
+      <input id="s-name" class="form-control search-input" placeholder="Search by name..." value="${search.name || ''}" onkeyup="if(event.key==='Enter') searchStudents()"/>
+      <input id="s-samagra" class="form-control" style="width:140px" placeholder="Samagra ID" value="${search.samagraId || ''}" onkeyup="if(event.key==='Enter') searchStudents()"/>
+      <input id="s-admNo" class="form-control" style="width:140px" placeholder="Admission No" value="${search.admNo || ''}" onkeyup="if(event.key==='Enter') searchStudents()"/>
+      <select id="s-class" class="form-control" style="width:130px" onchange="searchStudents()">
         <option value="">All Classes</option>
         ${['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Undergraduate', 'Postgraduate', 'Diploma', 'PhD', 'Other'].map(v => `<option ${search.className === v ? 'selected' : ''} value="${v}">${v}</option>`).join('')}
       </select>
-      <select id="s-stream" class="form-control" style="width:130px">
+      <select id="s-stream" class="form-control" style="width:130px" onchange="searchStudents()">
         <option value="">All Streams</option>
         ${['PCM', 'PCB', 'PCMB', 'COMMERCE', 'ARTS', 'GENERAL'].map(s => `<option ${search.stream === s ? 'selected' : ''}>${s}</option>`).join('')}
       </select>
@@ -108,16 +196,16 @@ const Pages = {
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>#</th><th>Name</th><th>Samagra ID</th><th>Mobile</th><th>City</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr><th>#</th><th>Name</th><th>Adm No</th><th>Samagra ID</th><th>Mobile</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
           ${(data.content || []).length === 0 ? `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔍</div><p>No students found</p></div></td></tr>` :
       (data.content || []).map((s, i) => `
           <tr>
             <td>${(data.pageNumber * data.pageSize) + i + 1}</td>
             <td><strong>${s.fullName}</strong></td>
+            <td><span class="badge badge-blue">${s.admissionNumber || '-'}</span></td>
             <td><span class="badge badge-gray">${s.samagraId}</span></td>
             <td>${s.mobileNumber || '-'}</td>
-            <td>${s.city || '-'}</td>
             <td><span class="badge ${s.studentStatus === 'ACTIVE' ? 'badge-green' : 'badge-yellow'}">${s.studentStatus}</span></td>
             <td><div class="td-actions">
               <button class="btn btn-info btn-sm" onclick="downloadRegistrationForm(${s.id})">📄 PDF</button>
@@ -219,10 +307,10 @@ const Pages = {
           </select>
         </div>
         <div class="doc-actions">
-          <button class="btn btn-secondary btn-sm" onclick="showEditDoc(${d.id}, ${fd.id}, '${d.documentType}', '${d.documentNumber || ''}')">✏️ Edit</button>
+          <button class="btn btn-secondary btn-sm" onclick="showEditDoc(${d.id}, ${s.id}, '${d.documentType}', '${d.documentNumber || ''}')">✏️ Edit</button>
           ${d.fileName ? `<button class="btn btn-primary btn-sm" onclick="viewDocument(${d.id},'${d.fileName || 'document'}')">👁 View</button>` : ''}
           ${d.fileName ? `<button class="btn btn-info btn-sm" onclick="downloadDocument(${d.id},'${d.fileName || 'document'}')">⬇ Download</button>` : ''}
-          <button class="btn btn-danger btn-sm" onclick="deleteDoc(${d.id},${fd.id})">🗑</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteDoc(${d.id},${s.id})">🗑 Delete</button>
         </div>
       </div>`).join('')}
     </div>
@@ -243,7 +331,7 @@ const Pages = {
         <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">
           ${pb.uploadDate ? pb.uploadDate.substring(0, 10) : ''}
           &nbsp;
-          <select class="form-control" style="display:inline-block;width:auto;padding:2px 8px;font-size:11px;height:auto" onchange="updateDocStatus(${pb.id}, this.value, ${fd.id})">
+          <select class="form-control" style="display:inline-block;width:auto;padding:2px 8px;font-size:11px;height:auto" onchange="updateDocStatus(${pb.id}, this.value, ${s.id})">
             <option value="PENDING" ${pb.verificationStatus === 'PENDING' ? 'selected' : ''}>Pending</option>
             <option value="VERIFIED" ${pb.verificationStatus === 'VERIFIED' ? 'selected' : ''}>Verified</option>
             <option value="REUPLOAD_REQUESTED" ${pb.verificationStatus === 'REUPLOAD_REQUESTED' ? 'selected' : ''}>Upload Again</option>
@@ -251,10 +339,10 @@ const Pages = {
           </select>
         </div>
         <div class="doc-actions">
-          <button class="btn btn-secondary btn-sm" onclick="showEditDoc(${pb.id}, ${fd.id}, '${pb.documentType}', '${pb.documentNumber || ''}')">✏️ Edit</button>
+          <button class="btn btn-secondary btn-sm" onclick="showEditDoc(${pb.id}, ${s.id}, '${pb.documentType}', '${pb.documentNumber || ''}')">✏️ Edit</button>
           ${pb.fileName ? `<button class="btn btn-primary btn-sm" onclick="viewDocument(${pb.id},'${pb.fileName || 'passbook'}')">👁 View</button>` : ''}
           ${pb.fileName ? `<button class="btn btn-info btn-sm" onclick="downloadDocument(${pb.id},'${pb.fileName || 'passbook'}')">⬇ Download</button>` : ''}
-          <button class="btn btn-danger btn-sm" onclick="deleteDoc(${pb.id},${fd.id})">🗑 Delete</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteDoc(${pb.id},${s.id})">🗑 Delete</button>
         </div>
       </div>`;
         return `

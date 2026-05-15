@@ -36,6 +36,12 @@ public class Student {
     @Column(length = 100)
     private String samagraIdSearch;
 
+    @Column(length = 100)
+    private String admNoHash;
+
+    @Column(length = 100)
+    private String admNoSearch;
+
     @Column(nullable = false, length = 100)
     private String fullName;
 
@@ -145,6 +151,13 @@ public class Student {
         if (this.samagraId != null) {
             this.samagraIdHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(this.samagraId);
             this.samagraIdSearch = this.samagraId;
+        }
+        
+        // Synchronize Admission Number search fields from AcademicDetails
+        if (this.academicDetails != null && this.academicDetails.getAdmissionNumber() != null) {
+            String adm = this.academicDetails.getAdmissionNumber().trim();
+            this.admNoHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(adm);
+            this.admNoSearch = adm;
         }
     }
 

@@ -64,7 +64,7 @@ public class StudentServiceImpl implements StudentService {
         }
         
         String admHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(request.getAcademicInfo().getAdmissionNumber().trim());
-        if (academicDetailsRepository.existsByAdmNoHashAndStudentAdmin(admHash, admin)) {
+        if (studentRepository.existsByAdmNoHashAndAdmin(admHash, admin)) {
             throw new DuplicateResourceException(
                     "Admission Number already exists for your account: " + request.getAcademicInfo().getAdmissionNumber());
         }
@@ -72,6 +72,8 @@ public class StudentServiceImpl implements StudentService {
         // Map & save student
         Student student = studentMapper.toEntity(request.getPersonalInfo());
         student.setAdmin(admin);
+        student.setAdmNoHash(admHash);
+        student.setAdmNoSearch(request.getAcademicInfo().getAdmissionNumber().trim());
         student = studentRepository.save(student);
 
         // Academic details
@@ -199,13 +201,19 @@ public class StudentServiceImpl implements StudentService {
                 throw new IllegalArgumentException("Admission Number cannot be empty");
             }
             
-            if (!newAdmNo.equals(academic.getAdmissionNumber())) {
+            String admHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(newAdmNo.trim());
+            // Only check for duplicates if the admission number actually changed
+            if (!newAdmNo.trim().equals(academic.getAdmissionNumber())) {
                 Admin admin = securityUtil.getCurrentAdmin();
-                String admHash = com.smartstudent.main.util.EncryptionUtil.hashForSearch(newAdmNo.trim());
-                if (academicDetailsRepository.existsByAdmNoHashAndStudentAdmin(admHash, admin)) {
+                if (studentRepository.existsByAdmNoHashAndAdmin(admHash, admin)) {
                     throw new DuplicateResourceException("Admission Number already exists for your account: " + newAdmNo);
                 }
             }
+
+            // Sync to Student entity for search
+            student.setAdmNoHash(admHash);
+            student.setAdmNoSearch(newAdmNo.trim());
+            studentRepository.save(student);
 
             academicDetailsMapper.updateFromDTO(request.getAcademicInfo(), academic);
             academicDetailsRepository.save(academic);
@@ -276,17 +284,27 @@ public class StudentServiceImpl implements StudentService {
     @Transactional(readOnly = true)
     public PagedResponseDTO<StudentResponseDTO> searchStudents(
             String name, String samagraId, String className,
-            String rollNumber, String admissionNumber, Stream stream,
+            String rollNumber, String admNo, Stream stream,
             int page, int size, String sortBy, String sortDir) {
 
         Admin admin = securityUtil.getCurrentAdmin();
+        // Trim search inputs
+        final String fName = (name != null) ? name.trim() : null;
+        final String fSamagraId = (samagraId != null) ? samagraId.trim() : null;
+        final String fAdmNo = (admNo != null) ? admNo.trim() : null;
+
+        log.info("Searching students for admin {}: name={}, samagraId={}, admNo={}", 
+                admin.getUsername(), fName, fSamagraId, fAdmNo);
+        
         Sort sort = sortDir.equalsIgnoreCase("asc")
                 ? Sort.by(sortBy).ascending()
                 : Sort.by(sortBy).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
         Page<Student> studentPage = studentRepository.searchStudents(
-                admin, name, samagraId, className, rollNumber, admissionNumber, stream, pageable);
+                admin, fName, fSamagraId, className, rollNumber, fAdmNo, stream, pageable);
+        
+        log.info("Search found {} results", studentPage.getTotalElements());
 
         List<StudentResponseDTO> content = studentPage.getContent()
                 .stream()

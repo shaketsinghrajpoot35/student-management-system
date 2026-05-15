@@ -11,6 +11,4 @@ import java.util.Optional;
 public interface AcademicDetailsRepository extends JpaRepository<AcademicDetails, Long> {
     Optional<AcademicDetails> findByStudentId(Long studentId);
     boolean existsByRollNumber(String rollNumber);
-    boolean existsByAdmNoHashAndStudentAdmin(String admNoHash, Admin admin);
-    boolean existsByAdmNoHashAndStudentAdminAndStudentIdNot(String admNoHash, Admin admin, Long studentId);
 }

@@ -13,7 +13,7 @@ window.addEventListener('DOMContentLoaded', () => {
     showSidebar();
     navigate('dashboard');
   } else {
-    navigate('login');
+    navigate('home');
   }
 });
 
@@ -29,6 +29,7 @@ function navigate(page, id = null) {
   if (activeNav) activeNav.classList.add('active');
 
   switch (page) {
+    case 'home': renderHome(); break;
     case 'login': renderLogin(); break;
     case 'dashboard': renderDashboard(); break;
     case 'students': pageNum = 0; renderStudents(); break;
@@ -37,7 +38,7 @@ function navigate(page, id = null) {
     case 'student-detail': renderStudentDetail(id); break;
     case 'subjects': renderSubjects(); break;
     case 'signup': renderSignup(); break;
-    default: navigate('dashboard');
+    default: navigate('home');
   }
 }
 
@@ -67,7 +68,7 @@ function showErr(el, msg) { el.textContent = msg; el.style.display = 'block'; }
 function logout() {
   localStorage.clear();
   hideSidebar();
-  navigate('login');
+  navigate('home');
 }
 
 function showSidebar() {
@@ -87,7 +88,12 @@ function hideSidebar() {
   document.getElementById('main-content').classList.add('full-width');
 }
 
-// ============ LOGIN & SIGNUP ============
+// ============ HOME, LOGIN & SIGNUP ============
+function renderHome() {
+  hideSidebar();
+  document.getElementById('page-container').innerHTML = Pages.home();
+}
+
 function renderLogin() {
   hideSidebar();
   document.getElementById('page-container').innerHTML = Pages.login();
@@ -135,13 +141,19 @@ async function renderDashboard() {
 // ============ STUDENTS LIST ============
 async function renderStudents() {
   try {
-    const params = new URLSearchParams({
-      page: pageNum, size: 10, sortBy: 'fullName', sortDir: 'asc',
-      ...(searchState.name && { name: searchState.name }),
-      ...(searchState.samagraId && { samagraId: searchState.samagraId }),
-      ...(searchState.className && { className: searchState.className }),
-      ...(searchState.stream && { stream: searchState.stream }),
-    });
+    const params = new URLSearchParams();
+    params.append('page', pageNum);
+    params.append('size', '10');
+    params.append('sortBy', 'fullName');
+    params.append('sortDir', 'asc');
+    
+    if (searchState.name) params.append('name', searchState.name);
+    if (searchState.samagraId) params.append('samagraId', searchState.samagraId);
+    if (searchState.admNo) params.append('admNo', searchState.admNo);
+    if (searchState.className) params.append('className', searchState.className);
+    if (searchState.stream) params.append('stream', searchState.stream);
+
+    console.log('Final Params String:', params.toString());
     const res = await api.getStudents(params.toString());
     const data = res.data || {};
     document.getElementById('page-container').innerHTML = Pages.students(data, searchState);
@@ -150,12 +162,21 @@ async function renderStudents() {
 }
 
 function searchStudents() {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  const nameVal = document.getElementById('s-name')?.value.trim() || '';
+  const samagraVal = document.getElementById('s-samagra')?.value.trim() || '';
+  const admNoVal = document.getElementById('s-admNo')?.value.trim() || '';
+  
+  console.log('DOM READ: admNo =', admNoVal);
+
   searchState = {
-    name: document.getElementById('s-name')?.value || '',
-    samagraId: document.getElementById('s-samagra')?.value || '',
+    name: nameVal,
+    samagraId: samagraVal,
+    admNo: admNoVal,
     className: document.getElementById('s-class')?.value || '',
     stream: document.getElementById('s-stream')?.value || '',
   };
+  console.log('New Search State:', JSON.stringify(searchState));
   pageNum = 0;
   renderStudents();
 }
@@ -283,16 +304,7 @@ function showTab(tabId) {
   document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
   document.getElementById('tab-' + tabId).style.display = 'block';
   document.querySelectorAll('#detail-tabs .tab-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
-}
-
-async function deleteDoc(docId, studentId) {
-  if (!confirm('Delete this document?')) return;
-  try {
-    await api.deleteDocument(docId);
-    toast('Document deleted', 'success');
-    renderStudentDetail(studentId);
-  } catch (e) { toast(e.message, 'error'); }
+  if (window.event) window.event.target.classList.add('active');
 }
 
 // Fetch doc as authenticated blob then open inline
@@ -403,6 +415,7 @@ async function exportStudentsCsv() {
     const params = new URLSearchParams({
       ...(searchState.name && { name: searchState.name }),
       ...(searchState.samagraId && { samagraId: searchState.samagraId }),
+      ...(searchState.admNo && { admNo: searchState.admNo }),
       ...(searchState.className && { className: searchState.className }),
       ...(searchState.stream && { stream: searchState.stream }),
     });

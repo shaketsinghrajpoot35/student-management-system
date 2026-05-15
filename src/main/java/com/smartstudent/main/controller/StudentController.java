@@ -65,19 +65,23 @@ public class StudentController {
      */
     @GetMapping
     public ResponseEntity<ApiResponseDTO<PagedResponseDTO<StudentResponseDTO>>> searchStudents(
-            @RequestParam(required = false) String name,
-            @RequestParam(required = false) String samagraId,
-            @RequestParam(required = false) String className,
-            @RequestParam(required = false) String rollNumber,
-            @RequestParam(required = false) String admissionNumber,
-            @RequestParam(required = false) Stream stream,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "fullName") String sortBy,
-            @RequestParam(defaultValue = "asc") String sortDir) {
+            jakarta.servlet.http.HttpServletRequest request,
+            @RequestParam(name = "name", required = false) String name,
+            @RequestParam(name = "samagraId", required = false) String samagraId,
+            @RequestParam(name = "className", required = false) String className,
+            @RequestParam(name = "rollNumber", required = false) String rollNumber,
+            @RequestParam(name = "admNo", required = false) String admNo,
+            @RequestParam(name = "stream", required = false) Stream stream,
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            @RequestParam(name = "sortBy", defaultValue = "fullName") String sortBy,
+            @RequestParam(name = "sortDir", defaultValue = "asc") String sortDir) {
+
+        log.info("Incoming Search Request: Query={}, Params={}", 
+            request.getQueryString(), request.getParameterMap().keySet());
 
         PagedResponseDTO<StudentResponseDTO> result = studentService.searchStudents(
-                name, samagraId, className, rollNumber, admissionNumber, stream,
+                name, samagraId, className, rollNumber, admNo, stream,
                 page, size, sortBy, sortDir);
         return ResponseEntity.ok(ApiResponseDTO.success("Students retrieved", result));
     }

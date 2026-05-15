@@ -47,4 +47,30 @@ public class SecureStudentRecordAndDocumentManagementSystemApplication {
             }
         };
     }
+    @Bean
+    CommandLineRunner migrateSearchFields(com.smartstudent.main.repository.StudentRepository studentRepository,
+                                         com.smartstudent.main.repository.AcademicDetailsRepository academicRepository) {
+        return args -> {
+            log.info("Starting mandatory search field sync...");
+            try {
+                // Sync Students (including moved admission search fields)
+                var allStudents = studentRepository.findAll();
+                allStudents.forEach(s -> {
+                    s.setSamagraIdSearch(s.getSamagraId());
+                    s.setSamagraIdHash(com.smartstudent.main.util.EncryptionUtil.hashForSearch(s.getSamagraId()));
+                    
+                    if (s.getAcademicDetails() != null) {
+                        String admNo = s.getAcademicDetails().getAdmissionNumber();
+                        s.setAdmNoSearch(admNo);
+                        s.setAdmNoHash(com.smartstudent.main.util.EncryptionUtil.hashForSearch(admNo));
+                    }
+                });
+                studentRepository.saveAll(allStudents);
+                log.info("Synced {} student search records and moved admission indices.", allStudents.size());
+            } catch (Exception e) {
+                log.error("Error during search field sync: {}", e.getMessage());
+            }
+            log.info("Search field sync completed.");
+        };
+    }
 }

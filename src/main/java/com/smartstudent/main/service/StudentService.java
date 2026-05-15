@@ -26,6 +26,6 @@ public interface StudentService {
 
     PagedResponseDTO<StudentResponseDTO> searchStudents(
             String name, String samagraId, String className,
-            String rollNumber, String admissionNumber, Stream stream,
+            String rollNumber, String admNo, Stream stream,
             int page, int size, String sortBy, String sortDir);
 }

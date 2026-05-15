@@ -60,7 +60,7 @@ public class StudentMapper {
     }
 
     public StudentResponseDTO toResponseDTO(Student student) {
-        if (student == null) return null;
+        String admNo = (student.getAcademicDetails() != null) ? student.getAcademicDetails().getAdmissionNumber() : null;
         return StudentResponseDTO.builder()
                 .id(student.getId())
                 .samagraId(student.getSamagraId())
@@ -83,6 +83,7 @@ public class StudentMapper {
                 .pincode(student.getPincode())
                 .admissionDate(student.getAdmissionDate())
                 .studentStatus(student.getStudentStatus())
+                .admissionNumber(admNo)
                 .photoPath(student.getPhotoPath())
                 .createdAt(student.getCreatedAt())
                 .updatedAt(student.getUpdatedAt())

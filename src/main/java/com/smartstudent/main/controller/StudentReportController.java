@@ -23,13 +23,10 @@ public class StudentReportController {
     public ResponseEntity<InputStreamResource> downloadStudentRegistrationForm(@PathVariable Long id) {
         ByteArrayInputStream bis = studentPdfService.generateStudentRegistrationForm(id);
         
-        org.springframework.http.ContentDisposition contentDisposition = org.springframework.http.ContentDisposition.attachment()
-                .filename("student_registration_" + id + ".pdf")
-                .build();
-        
+        String fileName = "student_registration_" + id + ".pdf";
         return ResponseEntity
                 .ok()
-                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(new InputStreamResource(bis));
     }
@@ -44,13 +41,9 @@ public class StudentReportController {
         
         ByteArrayInputStream bis = studentExportService.exportStudentsToCsv(name, samagraId, className, admissionNumber, stream);
 
-        org.springframework.http.ContentDisposition contentDisposition = org.springframework.http.ContentDisposition.attachment()
-                .filename("students_export.csv")
-                .build();
-        
         return ResponseEntity
                 .ok()
-                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
+                .header(org.springframework.http.HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"students_export.csv\"")
                 .contentType(MediaType.parseMediaType("text/csv"))
                 .body(new InputStreamResource(bis));
     }

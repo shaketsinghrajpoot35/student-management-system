@@ -35,6 +35,7 @@ public class StudentResponseDTO {
     private String pincode;
     private LocalDate admissionDate;
     private StudentStatus studentStatus;
+    private String admissionNumber;
     private String photoPath;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
