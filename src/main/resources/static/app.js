@@ -141,13 +141,19 @@ async function renderDashboard() {
 // ============ STUDENTS LIST ============
 async function renderStudents() {
   try {
-    const params = new URLSearchParams({
-      page: pageNum, size: 10, sortBy: 'fullName', sortDir: 'asc',
-      ...(searchState.name && { name: searchState.name }),
-      ...(searchState.samagraId && { samagraId: searchState.samagraId }),
-      ...(searchState.className && { className: searchState.className }),
-      ...(searchState.stream && { stream: searchState.stream }),
-    });
+    const params = new URLSearchParams();
+    params.append('page', pageNum);
+    params.append('size', '10');
+    params.append('sortBy', 'fullName');
+    params.append('sortDir', 'asc');
+    
+    if (searchState.name) params.append('name', searchState.name);
+    if (searchState.samagraId) params.append('samagraId', searchState.samagraId);
+    if (searchState.admNo) params.append('admNo', searchState.admNo);
+    if (searchState.className) params.append('className', searchState.className);
+    if (searchState.stream) params.append('stream', searchState.stream);
+
+    console.log('Final Params String:', params.toString());
     const res = await api.getStudents(params.toString());
     const data = res.data || {};
     document.getElementById('page-container').innerHTML = Pages.students(data, searchState);
@@ -156,13 +162,21 @@ async function renderStudents() {
 }
 
 function searchStudents() {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  const nameVal = document.getElementById('s-name')?.value.trim() || '';
+  const samagraVal = document.getElementById('s-samagra')?.value.trim() || '';
+  const admNoVal = document.getElementById('s-admNo')?.value.trim() || '';
+  
+  console.log('DOM READ: admNo =', admNoVal);
+
   searchState = {
-    name: document.getElementById('s-name')?.value || '',
-    samagraId: document.getElementById('s-samagra')?.value || '',
-    admissionNumber: document.getElementById('s-admNo')?.value || '',
+    name: nameVal,
+    samagraId: samagraVal,
+    admNo: admNoVal,
     className: document.getElementById('s-class')?.value || '',
     stream: document.getElementById('s-stream')?.value || '',
   };
+  console.log('New Search State:', JSON.stringify(searchState));
   pageNum = 0;
   renderStudents();
 }
@@ -401,6 +415,7 @@ async function exportStudentsCsv() {
     const params = new URLSearchParams({
       ...(searchState.name && { name: searchState.name }),
       ...(searchState.samagraId && { samagraId: searchState.samagraId }),
+      ...(searchState.admNo && { admNo: searchState.admNo }),
       ...(searchState.className && { className: searchState.className }),
       ...(searchState.stream && { stream: searchState.stream }),
     });

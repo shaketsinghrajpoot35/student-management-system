@@ -182,12 +182,12 @@ const Pages = {
     <div class="search-row">
       <input id="s-name" class="form-control search-input" placeholder="Search by name..." value="${search.name || ''}" onkeyup="if(event.key==='Enter') searchStudents()"/>
       <input id="s-samagra" class="form-control" style="width:140px" placeholder="Samagra ID" value="${search.samagraId || ''}" onkeyup="if(event.key==='Enter') searchStudents()"/>
-      <input id="s-admNo" class="form-control" style="width:140px" placeholder="Admission No" value="${search.admissionNumber || ''}" onkeyup="if(event.key==='Enter') searchStudents()"/>
-      <select id="s-class" class="form-control" style="width:130px">
+      <input id="s-admNo" class="form-control" style="width:140px" placeholder="Admission No" value="${search.admNo || ''}" onkeyup="if(event.key==='Enter') searchStudents()"/>
+      <select id="s-class" class="form-control" style="width:130px" onchange="searchStudents()">
         <option value="">All Classes</option>
         ${['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12', 'Undergraduate', 'Postgraduate', 'Diploma', 'PhD', 'Other'].map(v => `<option ${search.className === v ? 'selected' : ''} value="${v}">${v}</option>`).join('')}
       </select>
-      <select id="s-stream" class="form-control" style="width:130px">
+      <select id="s-stream" class="form-control" style="width:130px" onchange="searchStudents()">
         <option value="">All Streams</option>
         ${['PCM', 'PCB', 'PCMB', 'COMMERCE', 'ARTS', 'GENERAL'].map(s => `<option ${search.stream === s ? 'selected' : ''}>${s}</option>`).join('')}
       </select>
@@ -196,16 +196,16 @@ const Pages = {
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>#</th><th>Name</th><th>Samagra ID</th><th>Mobile</th><th>City</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr><th>#</th><th>Name</th><th>Adm No</th><th>Samagra ID</th><th>Mobile</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
           ${(data.content || []).length === 0 ? `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔍</div><p>No students found</p></div></td></tr>` :
       (data.content || []).map((s, i) => `
           <tr>
             <td>${(data.pageNumber * data.pageSize) + i + 1}</td>
             <td><strong>${s.fullName}</strong></td>
+            <td><span class="badge badge-blue">${s.admissionNumber || '-'}</span></td>
             <td><span class="badge badge-gray">${s.samagraId}</span></td>
             <td>${s.mobileNumber || '-'}</td>
-            <td>${s.city || '-'}</td>
             <td><span class="badge ${s.studentStatus === 'ACTIVE' ? 'badge-green' : 'badge-yellow'}">${s.studentStatus}</span></td>
             <td><div class="td-actions">
               <button class="btn btn-info btn-sm" onclick="downloadRegistrationForm(${s.id})">📄 PDF</button>
