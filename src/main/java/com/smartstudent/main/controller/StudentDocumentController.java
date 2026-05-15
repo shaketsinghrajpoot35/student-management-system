@@ -82,11 +82,14 @@ public class StudentDocumentController {
     public ResponseEntity<Resource> downloadDocument(@PathVariable Long id) {
         Resource resource = documentService.downloadDocument(id);
         String contentType = documentService.getDocumentContentType(id);
-        String fileName = documentService.getDocumentFileName(id);
+        String fileName = (resource != null) ? documentService.getDocumentFileName(id) : "document.pdf";
+
+        // Clean filename for the header to avoid encoding issues in some browsers
+        String cleanName = fileName.replace(" ", "_");
 
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(contentType))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + cleanName + "\"")
                 .body(resource);
     }
 }

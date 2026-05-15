@@ -149,7 +149,21 @@ public class StudentDocumentServiceImpl implements StudentDocumentService {
     @Override
     @Transactional(readOnly = true)
     public String getDocumentFileName(Long documentId) {
-        return findDocumentById(documentId).getFileName();
+        StudentDocument doc = findDocumentById(documentId);
+        String originalName = doc.getFileName();
+        String type = doc.getDocumentType().name();
+        String studentName = (doc.getStudent() != null) ? doc.getStudent().getFullName().replaceAll("[^a-zA-Z0-9]", "_") : "Student";
+        
+        // Preserve extension
+        String ext = "";
+        if (originalName != null && originalName.contains(".")) {
+            ext = originalName.substring(originalName.lastIndexOf("."));
+        } else {
+            // Default based on type if missing
+            ext = ".pdf";
+        }
+        
+        return studentName + "_" + type + ext;
     }
 
     @Override
