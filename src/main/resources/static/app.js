@@ -31,6 +31,9 @@ function navigate(page, id = null) {
   switch (page) {
     case 'home': renderHome(); break;
     case 'login': renderLogin(); break;
+    case 'forgot-password': document.getElementById('page-container').innerHTML = Pages.forgotPassword(); break;
+    case 'verify-otp': document.getElementById('page-container').innerHTML = Pages.verifyOtp(); break;
+    case 'reset-password': document.getElementById('page-container').innerHTML = Pages.resetPassword(); break;
     case 'dashboard': renderDashboard(); break;
     case 'students': pageNum = 0; renderStudents(); break;
     case 'register': renderRegisterForm(null); break;
@@ -77,15 +80,25 @@ function showSidebar() {
   const name = localStorage.getItem('adminName');
   if (name) document.getElementById('admin-name').textContent = name;
   const schoolName = localStorage.getItem('schoolName');
+  
   const brandEl = document.getElementById('brand-name-header');
   if (brandEl) {
-    brandEl.textContent = schoolName ? schoolName : 'SmartStudent';
+    brandEl.textContent = 'EduTrack';
+  }
+
+  const topHeader = document.getElementById('top-header');
+  const schoolNameDisplay = document.getElementById('school-name-display');
+  if (topHeader && schoolNameDisplay) {
+    topHeader.classList.remove('hidden');
+    schoolNameDisplay.textContent = schoolName || 'EduTrack Portal';
   }
 }
 
 function hideSidebar() {
   document.getElementById('sidebar').classList.add('hidden');
   document.getElementById('main-content').classList.add('full-width');
+  const topHeader = document.getElementById('top-header');
+  if (topHeader) topHeader.classList.add('hidden');
 }
 
 // ============ HOME, LOGIN & SIGNUP ============
@@ -698,8 +711,64 @@ function closeModal() {
 // ============ TOAST ============
 function toast(msg, type = 'info') {
   const el = document.getElementById('toast');
+  if (!el) return;
   el.textContent = msg; el.className = `toast ${type}`;
   el.classList.remove('hidden');
   clearTimeout(el._timer);
   el._timer = setTimeout(() => el.classList.add('hidden'), 3500);
+}
+
+// ============ FORGOT PASSWORD ============
+async function handleForgotPassword() {
+  const em = document.getElementById('fp-email')?.value?.trim();
+  const errEl = document.getElementById('fp-error');
+  if (!em) return showErr(errEl, 'Email is required');
+  const btn = document.getElementById('fp-btn');
+  try {
+    btn.disabled = true;
+    btn.textContent = 'Sending OTP...';
+    await api.forgotPassword(em);
+    localStorage.setItem('resetEmail', em);
+    toast('OTP sent to your email', 'success');
+    navigate('verify-otp');
+  } catch (err) {
+    showErr(errEl, err.message || 'Failed to send OTP');
+    if (btn) { btn.disabled = false; btn.textContent = 'Send OTP'; }
+  }
+}
+
+async function handleVerifyOtp() {
+  const otp = document.getElementById('vo-otp')?.value?.trim();
+  const em = localStorage.getItem('resetEmail');
+  const errEl = document.getElementById('vo-error');
+  if (!otp || !em) return showErr(errEl, 'Please enter the OTP');
+  const btn = document.getElementById('vo-btn');
+  try {
+    btn.disabled = true;
+    await api.verifyOtp(em, otp);
+    toast('OTP verified successfully', 'success');
+    navigate('reset-password');
+  } catch (err) {
+    showErr(errEl, err.message || 'Invalid OTP');
+    if (btn) { btn.disabled = false; }
+  }
+}
+
+async function handleResetPassword() {
+  const np = document.getElementById('rp-password')?.value?.trim();
+  const em = localStorage.getItem('resetEmail');
+  const errEl = document.getElementById('rp-error');
+  if (!np || !em) return showErr(errEl, 'Please enter a new password');
+  if (np.length < 6) return showErr(errEl, 'Password must be at least 6 characters');
+  const btn = document.getElementById('rp-btn');
+  try {
+    btn.disabled = true;
+    await api.resetPassword(em, np);
+    localStorage.removeItem('resetEmail');
+    toast('Password reset successfully. Please login.', 'success');
+    navigate('login');
+  } catch (err) {
+    showErr(errEl, err.message || 'Reset failed');
+    if (btn) { btn.disabled = false; }
+  }
 }

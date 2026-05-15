@@ -7,7 +7,7 @@ const Pages = {
   <nav class="home-nav">
     <div class="logo" onclick="navigate('home')">
       <span class="logo-icon">🎓</span>
-      <span class="logo-text">SmartStudent</span>
+      <span class="logo-text">EduTrack</span>
     </div>
     <div class="nav-links">
       <button class="btn btn-secondary" onclick="navigate('login')">Login</button>
@@ -63,7 +63,7 @@ const Pages = {
       <div class="footer-brand">
         <div class="logo">
           <span class="logo-icon">🎓</span>
-          <span class="logo-text">SmartStudent</span>
+          <span class="logo-text">EduTrack</span>
         </div>
         <p>Built for security-first schools by <strong>Shaket Singh Rajpoot</strong>.</p>
       </div>
@@ -78,7 +78,7 @@ const Pages = {
       </div>
     </div>
     <div class="footer-bottom">
-      &copy; 2026 SmartStudent | Developed by <strong>Shaket Singh Rajpoot</strong>
+      &copy; 2026 EduTrack | Developed by <strong>Shaket Singh Rajpoot</strong>
     </div>
   </footer>
 </div>`,
@@ -89,7 +89,7 @@ const Pages = {
     <div class="login-logo">
       <div class="logo" onclick="navigate('home')" style="justify-content:center;margin-bottom:24px">
         <span class="logo-icon" style="font-size:40px">🎓</span>
-        <span class="logo-text" style="font-size:24px">SmartStudent</span>
+        <span class="logo-text" style="font-size:24px">EduTrack</span>
       </div>
       <h1>Admin Login</h1>
       <p>Secure Access to Portal</p>
@@ -102,6 +102,9 @@ const Pages = {
     <div class="form-group">
       <label class="form-label">Password</label>
       <input id="password" class="form-control" placeholder="••••••••" type="password" autocomplete="current-password"/>
+    </div>
+    <div style="text-align:right;margin-bottom:12px">
+      <a href="#" onclick="navigate('forgot-password')" style="font-size:13px;color:var(--primary);text-decoration:none">Forgot Password?</a>
     </div>
     <button class="btn btn-primary btn-full" style="margin-top:8px" onclick="doLogin()">Login to Portal</button>
     <div style="margin-top:16px;text-align:center;font-size:14px;color:var(--text-muted)">
@@ -116,7 +119,7 @@ const Pages = {
     <div class="login-logo">
       <div class="logo" onclick="navigate('home')" style="justify-content:center;margin-bottom:24px">
         <span class="logo-icon" style="font-size:40px">🎓</span>
-        <span class="logo-text" style="font-size:24px">SmartStudent</span>
+        <span class="logo-text" style="font-size:24px">EduTrack</span>
       </div>
       <h1>Sign Up</h1>
       <p>Create School Admin Account</p>
@@ -487,5 +490,56 @@ const Pages = {
     </button>
   </div>
 </div>`;
-  }
+  },
+
+  forgotPassword: () => `
+<div class="login-page">
+  <div class="login-card fade-in">
+    <div class="login-logo">
+      <h1>Forgot Password</h1>
+      <p>Enter your email to receive an OTP</p>
+    </div>
+    <div id="fp-error" class="login-error"></div>
+    <div class="form-group">
+      <label class="form-label">Email</label>
+      <input id="fp-email" class="form-control" placeholder="admin@school.edu" type="email"/>
+    </div>
+    <button id="fp-btn" class="btn btn-primary btn-full" style="margin-top:8px" onclick="handleForgotPassword()">Send OTP</button>
+    <div style="margin-top:16px;text-align:center;font-size:14px;color:var(--text-muted)">
+      Remembered? <a href="#" onclick="navigate('login')" style="color:var(--primary);text-decoration:none;font-weight:500">Back to Login</a>
+    </div>
+  </div>
+</div>`,
+
+  verifyOtp: () => `
+<div class="login-page">
+  <div class="login-card fade-in">
+    <div class="login-logo">
+      <h1>Verify OTP</h1>
+      <p>Enter the 6-digit OTP sent to your email</p>
+    </div>
+    <div id="vo-error" class="login-error"></div>
+    <div class="form-group">
+      <label class="form-label">OTP</label>
+      <input id="vo-otp" class="form-control" placeholder="123456" type="text" maxlength="6"/>
+    </div>
+    <button id="vo-btn" class="btn btn-primary btn-full" style="margin-top:8px" onclick="handleVerifyOtp()">Verify OTP</button>
+  </div>
+</div>`,
+
+  resetPassword: () => `
+<div class="login-page">
+  <div class="login-card fade-in">
+    <div class="login-logo">
+      <h1>Reset Password</h1>
+      <p>Enter your new password</p>
+    </div>
+    <div id="rp-error" class="login-error"></div>
+    <div class="form-group">
+      <label class="form-label">New Password</label>
+      <input id="rp-password" class="form-control" placeholder="••••••••" type="password"/>
+    </div>
+    <button id="rp-btn" class="btn btn-primary btn-full" style="margin-top:8px" onclick="handleResetPassword()">Reset Password</button>
+  </div>
+</div>`
 };

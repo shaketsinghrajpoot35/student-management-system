@@ -4,11 +4,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SmartStudent — Admin Portal</title>
+  <title>EduTrack — Admin Portal</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
     rel="stylesheet" />
-  <link rel="stylesheet" href="style.css?v=15" />
+  <link rel="stylesheet" href="style.css?v=16" />
 </head>
 
 <body>
@@ -18,7 +18,7 @@
     <aside id="sidebar" class="sidebar hidden">
       <div class="sidebar-brand">
         <div class="brand-icon">🎓</div>
-        <span class="brand-name" id="brand-name-header">SmartStudent</span>
+        <span class="brand-name" id="brand-name-header">EduTrack</span>
       </div>
       <nav class="sidebar-nav">
         <a class="nav-item" href="#dashboard" onclick="navigate('dashboard')"><span class="nav-icon">📊</span>
@@ -44,6 +44,12 @@
 
     <!-- MAIN CONTENT -->
     <main id="main-content" class="main-content full-width">
+      <!-- DYNAMIC TOP HEADER -->
+      <header id="top-header" class="top-header hidden">
+        <div class="header-container">
+          <h2 id="school-name-display" class="school-name-display">EduTrack Portal</h2>
+        </div>
+      </header>
       <div id="page-container"></div>
     </main>
   </div>
@@ -58,9 +64,9 @@
     </div>
   </div>
 
-  <script src="api.js?v=15"></script>
-  <script src="pages.js?v=15"></script>
-  <script src="app.js?v=15"></script>
+  <script src="api.js?v=16"></script>
+  <script src="pages.js?v=16"></script>
+  <script src="app.js?v=16"></script>
 </body>
 
 </html>

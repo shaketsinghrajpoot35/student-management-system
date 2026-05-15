@@ -39,6 +39,9 @@ const api = {
   // AUTH
   login: (u, p) => api.post('/api/auth/login', { username: u, password: p }),
   register: (email, password, schoolName) => api.post('/api/auth/register', { email, password, schoolName }),
+  forgotPassword: (email) => api.post('/api/auth/forgot-password', { email }),
+  verifyOtp: (email, otp) => api.post('/api/auth/verify-otp', { email, otp }),
+  resetPassword: (email, newPassword) => api.post('/api/auth/reset-password', { email, newPassword }),
 
   // STUDENTS
   getStudents: (params = '') => api.get(`/api/students?${params}`),
