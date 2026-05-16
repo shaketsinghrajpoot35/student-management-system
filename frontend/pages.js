@@ -231,6 +231,49 @@ const Pages = {
     </div>
   `,
 
+  attendance: (students, selectedDate, selectedClass) => {
+    const today = new Date().toISOString().split('T')[0];
+    return `
+      <div class="container animate-in">
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">Mark Attendance</h1>
+            <p class="page-subtitle">Daily student presence tracking</p>
+          </div>
+          <div style="display:flex; gap:12px; align-items:center">
+             <input type="date" id="attendance-date" class="form-control" value="${selectedDate || today}" onchange="loadAttendanceGrid()" style="width:auto">
+             <select id="attendance-class" class="form-control" onchange="loadAttendanceGrid()" style="width:auto">
+                <option value="">All Classes</option>
+                ${['Class 1', 'Class 2', 'Class 3', 'Class 4', 'Class 5', 'Class 6', 'Class 7', 'Class 8', 'Class 9', 'Class 10', 'Class 11', 'Class 12'].map(c => `<option ${selectedClass === c ? 'selected' : ''} value="${c}">${c}</option>`).join('')}
+             </select>
+             <button class="btn btn-primary" onclick="markAllPresent()">Mark All Present</button>
+          </div>
+        </div>
+        
+        <div class="attendance-grid" id="attendance-list">
+          ${students.length === 0 ? '<div class="card" style="text-align:center; padding:40px; color:var(--text-muted)">No students found. Add students to mark attendance.</div>' : ''}
+          ${students.map(s => `
+            <div class="attendance-row" data-id="${s.id}">
+              <div>
+                <div style="font-weight:600">${s.fullName}</div>
+                <div style="font-size:12px; color:var(--text-muted)">${s.academicDetails?.className || 'Unassigned'} | Roll: ${s.academicDetails?.rollNumber || 'N/A'}</div>
+              </div>
+              <div class="attendance-controls">
+                <button class="attendance-btn p active" onclick="toggleStatus(this, 'PRESENT')">P</button>
+                <button class="attendance-btn a" onclick="toggleStatus(this, 'ABSENT')">A</button>
+                <button class="attendance-btn l" onclick="toggleStatus(this, 'LATE')">L</button>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <div style="margin-top:24px; display:flex; justify-content:flex-end">
+           <button class="btn btn-primary btn-lg" onclick="submitAttendance()" ${students.length === 0 ? 'disabled' : ''}>💾 Save Attendance</button>
+        </div>
+      </div>
+    `;
+  },
+
   students: (data, search) => `
 <div class="fade-in">
   <div class="page-header">
@@ -331,6 +374,7 @@ const Pages = {
     <button class="tab-btn active" onclick="showTab('personal')">👤 Personal</button>
     <button class="tab-btn" onclick="showTab('academic')">🎓 Academic</button>
     <button class="tab-btn" onclick="showTab('subjects')">📚 Subjects</button>
+    <button class="tab-btn" onclick="showTab('attendance')">📅 Attendance</button>
     <button class="tab-btn" onclick="showTab('documents')">📁 Documents</button>
     <button class="tab-btn" onclick="showTab('bank')">🏦 Bank</button>
   </div>
@@ -349,6 +393,12 @@ const Pages = {
   <div id="tab-subjects" class="tab-pane card" style="display:none">
     <div class="form-section-title">Subjects (${subs.length})</div>
     <div class="chips">${subs.length === 0 ? '<p style="color:var(--text-muted)">No subjects assigned.</p>' : subs.map(s => `<div class="chip">📚 ${s.subjectName}</div>`).join('')}</div>
+  </div>
+  <div id="tab-attendance" class="tab-pane card" style="display:none">
+    <div class="card-header"><span class="form-section-title" style="margin:0">Attendance History</span></div>
+    <div id="student-attendance-history" style="margin-top:16px">
+       <div style="text-align:center; padding:20px; color:var(--text-muted)">Loading history...</div>
+    </div>
   </div>
   <div id="tab-documents" class="tab-pane card" style="display:none">
     <div class="card-header"><span class="form-section-title" style="margin:0">Documents (${docs.length})</span>

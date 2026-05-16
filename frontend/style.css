@@ -309,6 +309,22 @@ tr:hover td { background: var(--bg-card); }
 }
 .top-header.hidden { display: none; }
 
+/* ---- ATTENDANCE BADGES ---- */
+.badge-attendance { padding: 4px 10px; border-radius: 99px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+.badge-present { background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.2); }
+.badge-absent { background: rgba(244, 63, 94, 0.15); color: #f43f5e; border: 1px solid rgba(244, 63, 94, 0.2); }
+.badge-late { background: rgba(245, 158, 11, 0.15); color: #f59e0b; border: 1px solid rgba(245, 158, 11, 0.2); }
+.badge-half { background: rgba(234, 179, 8, 0.15); color: #eab308; border: 1px solid rgba(234, 179, 8, 0.2); }
+
+.attendance-grid { display: flex; flex-direction: column; gap: 12px; }
+.attendance-row { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: rgba(255, 255, 255, 0.03); border-radius: 12px; border: 1px solid var(--border); transition: 0.2s; }
+.attendance-row:hover { background: rgba(255, 255, 255, 0.05); }
+.attendance-controls { display: flex; gap: 8px; }
+.attendance-btn { padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; font-size: 12px; transition: 0.2s; }
+.attendance-btn.active.p { background: #10b981; color: white; border-color: #10b981; }
+.attendance-btn.active.a { background: #f43f5e; color: white; border-color: #f43f5e; }
+.attendance-btn.active.l { background: #f59e0b; color: white; border-color: #f59e0b; }
+
 .school-name-display {
   margin: 0;
   font-size: 22px;

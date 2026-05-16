@@ -40,6 +40,7 @@ function navigate(page, id = null) {
     case 'edit': renderEditForm(id); break;
     case 'student-detail': renderStudentDetail(id); break;
     case 'subjects': renderSubjects(); break;
+    case 'attendance': loadAttendanceGrid(); break;
     case 'staff': loadStaff(); break;
     case 'signup': renderSignup(); break;
     default: navigate('home');
@@ -484,6 +485,10 @@ function showTab(tabId) {
   document.getElementById('tab-' + tabId).style.display = 'block';
   document.querySelectorAll('#detail-tabs .tab-btn').forEach(b => b.classList.remove('active'));
   if (window.event) window.event.target.classList.add('active');
+
+  if (tabId === 'attendance') {
+    loadStudentAttendanceHistory(currentStudentId);
+  }
 }
 
 // Fetch doc as authenticated blob then open inline
@@ -938,3 +943,108 @@ async function handleResetPassword() {
     if (btn) { btn.disabled = false; }
   }
 }
+
+// ---- ATTENDANCE LOGIC ----
+async function loadAttendanceGrid() {
+  try {
+    showSpinner();
+    const date = document.getElementById('attendance-date')?.value || new Date().toISOString().split('T')[0];
+    const className = document.getElementById('attendance-class')?.value || '';
+    
+    // Fetch students for the grid
+    const params = new URLSearchParams();
+    if (className) params.append('className', className);
+    params.append('size', '1000'); // Load all for the grid
+    
+    const res = await api.getStudents(params.toString());
+    const students = res.data?.content || [];
+    
+    document.getElementById('page-container').innerHTML = Pages.attendance(students, date, className);
+    
+    // Check if attendance is already marked for this day and pre-fill
+    const markedRes = await api.getClassAttendance(className, date);
+    const markedData = markedRes.data || [];
+    
+    markedData.forEach(m => {
+      const row = document.querySelector(.attendance-row[data-id=""]);
+      if (row) {
+        const btns = row.querySelectorAll('.attendance-btn');
+        btns.forEach(b => b.classList.remove('active'));
+        const statusChar = m.status === 'PRESENT' ? 'p' : (m.status === 'ABSENT' ? 'a' : 'l');
+        row.querySelector(.attendance-btn.).classList.add('active');
+      }
+    });
+    
+    hideSpinner();
+  } catch (e) { toast(e.message, 'error'); hideSpinner(); }
+}
+
+function toggleStatus(btn, status) {
+  const row = btn.closest('.attendance-row');
+  row.querySelectorAll('.attendance-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+
+function markAllPresent() {
+  document.querySelectorAll('.attendance-row').forEach(row => {
+    row.querySelectorAll('.attendance-btn').forEach(b => b.classList.remove('active'));
+    row.querySelector('.attendance-btn.p').classList.add('active');
+  });
+  toast('All students marked as Present locally. Remember to Save.', 'info');
+}
+
+async function submitAttendance() {
+  try {
+    const date = document.getElementById('attendance-date').value;
+    const items = [];
+    document.querySelectorAll('.attendance-row').forEach(row => {
+      const studentId = row.dataset.id;
+      const activeBtn = row.querySelector('.attendance-btn.active');
+      let status = 'PRESENT';
+      if (activeBtn.classList.contains('a')) status = 'ABSENT';
+      if (activeBtn.classList.contains('l')) status = 'LATE';
+      
+      items.push({ studentId, status });
+    });
+    
+    await api.markAttendance({ date, attendanceList: items });
+    toast('Attendance saved successfully!', 'success');
+  } catch (e) { toast(e.message, 'error'); }
+}
+
+
+async function loadStudentAttendanceHistory(studentId) {
+  const container = document.getElementById('student-attendance-history');
+  if (!container) return;
+  try {
+    const res = await api.getAttendanceByStudent(studentId);
+    const history = res.data || [];
+    
+    if (history.length === 0) {
+      container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted)">No attendance records found for this student.</div>';
+      return;
+    }
+    
+    container.innerHTML = `
+      <table class="table" style="width:100%">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Status</th>
+            <th>Marked By</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${history.map(h => `
+            <tr>
+              <td>${h.date}</td>
+              <td><span class="badge-attendance badge-${h.status.toLowerCase().replace('_', '').replace('halfday', 'half')}">${h.status}</span></td>
+              <td>${h.markedByName}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (e) { container.innerHTML = '<div style="color:var(--danger)">Error loading history</div>'; }
+}
+

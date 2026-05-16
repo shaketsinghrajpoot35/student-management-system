@@ -96,4 +96,9 @@ const api = {
 
   // DASHBOARD
   getDashboardAnalytics: () => api.get('/api/dashboard/analytics'),
+
+  // ATTENDANCE
+  markAttendance: (data) => api.post('/api/attendance/mark', data),
+  getAttendanceByStudent: (id) => api.get(`/api/attendance/student/${id}`),
+  getClassAttendance: (className, date) => api.get(`/api/attendance/class?className=${className || ''}&date=${date || ''}`),
 };
