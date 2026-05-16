@@ -301,24 +301,31 @@ const Pages = {
     </div>
     <div class="table-wrap">
       <table>
-        <thead><tr><th>#</th><th>Name</th><th>Adm No</th><th>Samagra ID</th><th>Mobile</th><th>Status</th><th>Actions</th></tr></thead>
+        <thead><tr><th>#</th><th>Name</th><th>Adm No</th><th>Mobile</th><th>Attendance</th><th>Status</th><th>Actions</th></tr></thead>
         <tbody>
           ${(data.content || []).length === 0 ? `<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">🔍</div><p>No students found</p></div></td></tr>` :
-      (data.content || []).map((s, i) => `
+      (data.content || []).map((s, i) => {
+        let attColor = 'gray';
+        if (s.attendancePercentage >= 75) attColor = 'green';
+        else if (s.attendancePercentage >= 50) attColor = 'yellow';
+        else if (s.attendanceSummary && s.attendanceSummary !== '0P, 0A, 0L') attColor = 'red';
+        return `
           <tr>
             <td>${(data.pageNumber * data.pageSize) + i + 1}</td>
             <td><strong>${s.fullName}</strong></td>
             <td><span class="badge badge-blue">${s.admissionNumber || '-'}</span></td>
-            <td><span class="badge badge-gray">${s.samagraId}</span></td>
             <td>${s.mobileNumber || '-'}</td>
+            <td>
+              <div style="font-weight:600; color:var(--${attColor})">${s.attendancePercentage || 0}%</div>
+              <div style="font-size:11px; color:var(--text-muted)">${s.attendanceSummary || 'No Records'}</div>
+            </td>
             <td><span class="badge ${s.studentStatus === 'ACTIVE' ? 'badge-green' : 'badge-yellow'}">${s.studentStatus}</span></td>
             <td><div class="td-actions">
-              <button class="btn btn-info btn-sm" onclick="downloadRegistrationForm(${s.id})">📄 PDF</button>
               <button class="btn btn-info btn-sm" onclick="navigate('student-detail',${s.id})">👁 View</button>
               <button class="btn btn-secondary btn-sm" onclick="navigate('edit',${s.id})">✏️ Edit</button>
               ${localStorage.getItem('userRole') === 'ROLE_ADMIN' ? `<button class="btn btn-danger btn-sm" onclick="confirmDelete(${s.id},'${s.fullName}')">🗑</button>` : ''}
             </div></td>
-          </tr>`).join('')}
+          </tr>`}).join('')}
         </tbody>
       </table>
     </div>
@@ -371,12 +378,12 @@ const Pages = {
     </div>
   </div>
   <div class="tabs" id="detail-tabs">
-    <button class="tab-btn active" onclick="showTab('personal')">👤 Personal</button>
-    <button class="tab-btn" onclick="showTab('academic')">🎓 Academic</button>
-    <button class="tab-btn" onclick="showTab('subjects')">📚 Subjects</button>
-    <button class="tab-btn" onclick="showTab('attendance')">📅 Attendance</button>
-    <button class="tab-btn" onclick="showTab('documents')">📁 Documents</button>
-    <button class="tab-btn" onclick="showTab('bank')">🏦 Bank</button>
+    <button class="tab-btn active" onclick="showTab('personal', this)">👤 Personal</button>
+    <button class="tab-btn" onclick="showTab('academic', this)">🎓 Academic</button>
+    <button class="tab-btn" onclick="showTab('subjects', this)">📚 Subjects</button>
+    <button class="tab-btn" onclick="showTab('attendance', this)">📅 Attendance</button>
+    <button class="tab-btn" onclick="showTab('documents', this)">📁 Documents</button>
+    <button class="tab-btn" onclick="showTab('bank', this)">🏦 Bank</button>
   </div>
   <div id="tab-personal" class="tab-pane card">
     <div class="form-section-title">Personal Information</div>
@@ -481,11 +488,11 @@ const Pages = {
     <button class="btn btn-secondary" onclick="navigate(${isEdit ? `'student-detail',currentStudentId` : "'students'"})">← Back</button>
   </div>
   <div class="tabs">
-    <button class="tab-btn active" onclick="showFormTab('f-personal')">👤 Personal</button>
-    <button class="tab-btn" onclick="showFormTab('f-academic')">🎓 Academic</button>
-    <button class="tab-btn" onclick="showFormTab('f-subjects')">📚 Subjects</button>
-    <button class="tab-btn" onclick="showFormTab('f-bank')">🏦 Bank</button>
-    <button class="tab-btn" onclick="showFormTab('f-documents')">📁 Documents</button>
+    <button class="tab-btn active" onclick="showFormTab('f-personal', this)">👤 Personal</button>
+    <button class="tab-btn" onclick="showFormTab('f-academic', this)">🎓 Academic</button>
+    <button class="tab-btn" onclick="showFormTab('f-subjects', this)">📚 Subjects</button>
+    <button class="tab-btn" onclick="showFormTab('f-bank', this)">🏦 Bank</button>
+    <button class="tab-btn" onclick="showFormTab('f-documents', this)">📁 Documents</button>
   </div>
 
   <!-- PERSONAL -->

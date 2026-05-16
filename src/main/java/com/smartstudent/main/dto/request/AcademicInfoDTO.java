@@ -17,6 +17,7 @@ public class AcademicInfoDTO {
     @Size(max = 20)
     private String rollNumber;
 
+    
     @Size(max = 30)
     private String admissionNumber;
 

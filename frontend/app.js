@@ -8,11 +8,34 @@ let debounceTimer = null;
 
 // ============ INIT ============
 window.addEventListener('DOMContentLoaded', () => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    showSidebar();
-    navigate('dashboard');
-  } else {
+  try {
+    const token = localStorage.getItem('token');
+    if (token) {
+      showSidebar();
+      navigate('dashboard');
+    } else {
+      navigate('home');
+    }
+  } catch (e) {
+    console.error('Init error:', e);
+    navigate('home');
+  }
+});
+
+// Global error handler to prevent blank pages
+window.addEventListener('error', (e) => {
+  console.error('Global error:', e.error);
+  const container = document.getElementById('page-container');
+  if (container && container.querySelector('.loading')) {
+    // Page is stuck on spinner, recover to home
+    navigate('home');
+  }
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+  console.error('Unhandled promise rejection:', e.reason);
+  const container = document.getElementById('page-container');
+  if (container && container.querySelector('.loading')) {
     navigate('home');
   }
 });
@@ -252,8 +275,16 @@ async function renderDashboard() {
     // Render Charts
     renderCharts(stats);
   } catch (e) { 
-    console.error(e);
-    toast(e.message, 'error'); 
+    console.error('Dashboard load error:', e);
+    // Fallback: render dashboard with empty data so page isn't blank
+    try {
+      document.getElementById('page-container').innerHTML = Pages.dashboard({});
+    } catch (e2) {
+      console.error('Dashboard fallback error:', e2);
+      navigate('home');
+      return;
+    }
+    toast(e.message || 'Failed to load dashboard data', 'error'); 
   }
 }
 
@@ -480,11 +511,11 @@ async function renderStudentDetail(id) {
   } catch (e) { toast(e.message, 'error'); }
 }
 
-function showTab(tabId) {
+function showTab(tabId, clickedEl) {
   document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
   document.getElementById('tab-' + tabId).style.display = 'block';
   document.querySelectorAll('#detail-tabs .tab-btn').forEach(b => b.classList.remove('active'));
-  if (window.event) window.event.target.classList.add('active');
+  if (clickedEl) clickedEl.classList.add('active');
 
   if (tabId === 'attendance') {
     loadStudentAttendanceHistory(currentStudentId);
@@ -727,12 +758,32 @@ async function renderEditForm(id) {
   } catch (e) { toast(e.message, 'error'); }
 }
 
-function showFormTab(tabId) {
+function showFormTab(tabId, clickedEl) {
   document.querySelectorAll('.tab-pane').forEach(el => el.style.display = 'none');
   document.getElementById(tabId).style.display = 'block';
   document.querySelectorAll('.tabs .tab-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if (clickedEl) clickedEl.classList.add('active');
 }
+
+function showSpinner() {
+  const container = document.getElementById('page-container');
+  if (container) {
+    const overlay = document.createElement('div');
+    overlay.id = 'global-spinner';
+    overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;z-index:9999';
+    overlay.innerHTML = '<div class="spinner"></div>';
+    document.body.appendChild(overlay);
+  }
+}
+
+function hideSpinner() {
+  const overlay = document.getElementById('global-spinner');
+  if (overlay) overlay.remove();
+  // Also remove any legacy inline loading div
+  const loading = document.querySelector('.loading');
+  if (loading) loading.remove();
+}
+
 
 
 function getFormData() {
@@ -946,37 +997,47 @@ async function handleResetPassword() {
 
 // ---- ATTENDANCE LOGIC ----
 async function loadAttendanceGrid() {
+  // Read date/class from existing inputs (if they exist), or use defaults
+  const existingDate = document.getElementById('attendance-date')?.value;
+  const existingClass = document.getElementById('attendance-class')?.value;
+  const date = existingDate || new Date().toISOString().split('T')[0];
+  const className = existingClass || '';
+
+  // STEP 1: Render the shell template first so the DOM elements exist
+  document.getElementById('page-container').innerHTML = Pages.attendance([], date, className);
+
+  showSpinner();
   try {
-    showSpinner();
-    const date = document.getElementById('attendance-date')?.value || new Date().toISOString().split('T')[0];
-    const className = document.getElementById('attendance-class')?.value || '';
-    
-    // Fetch students for the grid
+    // STEP 2: Fetch students
     const params = new URLSearchParams();
     if (className) params.append('className', className);
-    params.append('size', '1000'); // Load all for the grid
-    
+    params.append('size', '1000');
+
     const res = await api.getStudents(params.toString());
     const students = res.data?.content || [];
-    
+
+    // STEP 3: Re-render with actual students
     document.getElementById('page-container').innerHTML = Pages.attendance(students, date, className);
-    
-    // Check if attendance is already marked for this day and pre-fill
-    const markedRes = await api.getClassAttendance(className, date);
-    const markedData = markedRes.data || [];
-    
-    markedData.forEach(m => {
-      const row = document.querySelector(.attendance-row[data-id=""]);
-      if (row) {
-        const btns = row.querySelectorAll('.attendance-btn');
-        btns.forEach(b => b.classList.remove('active'));
-        const statusChar = m.status === 'PRESENT' ? 'p' : (m.status === 'ABSENT' ? 'a' : 'l');
-        row.querySelector(.attendance-btn.).classList.add('active');
-      }
-    });
-    
+
+    // STEP 4: Pre-fill already-marked attendance
+    try {
+      const markedRes = await api.getClassAttendance(className, date);
+      const markedData = markedRes.data || [];
+      markedData.forEach(m => {
+        const row = document.querySelector(`.attendance-row[data-id="${m.studentId}"]`);
+        if (row) {
+          row.querySelectorAll('.attendance-btn').forEach(b => b.classList.remove('active'));
+          const statusChar = m.status === 'PRESENT' ? 'p' : (m.status === 'ABSENT' ? 'a' : 'l');
+          const btn = row.querySelector(`.attendance-btn.${statusChar}`);
+          if (btn) btn.classList.add('active');
+        }
+      });
+    } catch (ignored) { /* no prior attendance data – that's fine */ }
+  } catch (e) {
+    toast(e.message || 'Failed to load attendance', 'error');
+  } finally {
     hideSpinner();
-  } catch (e) { toast(e.message, 'error'); hideSpinner(); }
+  }
 }
 
 function toggleStatus(btn, status) {
@@ -994,22 +1055,31 @@ function markAllPresent() {
 }
 
 async function submitAttendance() {
+  const dateEl = document.getElementById('attendance-date');
+  if (!dateEl || !dateEl.value) { toast('Please select a date', 'error'); return; }
+  const date = dateEl.value;
+
+  const rows = document.querySelectorAll('.attendance-row');
+  if (rows.length === 0) { toast('No students to save attendance for', 'error'); return; }
+
   try {
-    const date = document.getElementById('attendance-date').value;
     const items = [];
-    document.querySelectorAll('.attendance-row').forEach(row => {
+    rows.forEach(row => {
       const studentId = row.dataset.id;
       const activeBtn = row.querySelector('.attendance-btn.active');
-      let status = 'PRESENT';
-      if (activeBtn.classList.contains('a')) status = 'ABSENT';
-      if (activeBtn.classList.contains('l')) status = 'LATE';
-      
-      items.push({ studentId, status });
+      let status = 'PRESENT'; // default
+      if (activeBtn) {
+        if (activeBtn.classList.contains('a')) status = 'ABSENT';
+        else if (activeBtn.classList.contains('l')) status = 'LATE';
+      }
+      items.push({ studentId: parseInt(studentId, 10), status });
     });
-    
+
     await api.markAttendance({ date, attendanceList: items });
     toast('Attendance saved successfully!', 'success');
-  } catch (e) { toast(e.message, 'error'); }
+    // Reload to reflect saved state
+    loadAttendanceGrid();
+  } catch (e) { toast(e.message || 'Failed to save attendance', 'error'); }
 }
 
 

@@ -34,6 +34,7 @@ public class StudentServiceImpl implements StudentService {
     private final SubjectRepository subjectRepository;
     private final StudentDocumentRepository documentRepository;
     private final BankDetailsRepository bankDetailsRepository;
+    private final AttendanceRepository attendanceRepository;
 
     private final StudentMapper studentMapper;
     private final AcademicDetailsMapper academicDetailsMapper;
@@ -330,7 +331,10 @@ public class StudentServiceImpl implements StudentService {
 
         List<StudentResponseDTO> content = studentPage.getContent()
                 .stream()
-                .map(studentMapper::toResponseDTO)
+                .map(student -> {
+                    StudentResponseDTO dto = studentMapper.toResponseDTO(student);
+                    return enrichWithAttendance(dto, student);
+                })
                 .collect(Collectors.toList());
 
         return PagedResponseDTO.<StudentResponseDTO>builder()
@@ -366,6 +370,28 @@ public class StudentServiceImpl implements StudentService {
             }
         }
         return student;
+    }
+
+    private StudentResponseDTO enrichWithAttendance(StudentResponseDTO dto, Student student) {
+        List<Attendance> attendances = attendanceRepository.findByStudentIdOrderByDateDesc(student.getId());
+        if (attendances.isEmpty()) {
+            dto.setAttendancePercentage(0.0);
+            dto.setAttendanceSummary("0P, 0A, 0L");
+            return dto;
+        }
+        long pCount = 0;
+        long aCount = 0;
+        long lCount = 0;
+        for (Attendance a : attendances) {
+            if (a.getStatus() == com.smartstudent.main.enums.AttendanceStatus.PRESENT) pCount++;
+            else if (a.getStatus() == com.smartstudent.main.enums.AttendanceStatus.ABSENT) aCount++;
+            else if (a.getStatus() == com.smartstudent.main.enums.AttendanceStatus.LATE) lCount++;
+        }
+        long total = pCount + aCount + lCount;
+        double pct = total > 0 ? ((double) pCount / total) * 100 : 0;
+        dto.setAttendancePercentage(Math.round(pct * 100.0) / 100.0);
+        dto.setAttendanceSummary(pCount + "P, " + aCount + "A, " + lCount + "L");
+        return dto;
     }
 
     private List<Subject> resolveSubjects(List<SubjectDTO> subjectDTOs, Admin admin) {

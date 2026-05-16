@@ -39,4 +39,8 @@ public class StudentResponseDTO {
     private String photoPath;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    
+    // Attendance Stats
+    private Double attendancePercentage;
+    private String attendanceSummary;
 }
