@@ -5,6 +5,8 @@ import lombok.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(name = "subjects", uniqueConstraints = {
@@ -32,6 +34,7 @@ public class Subject {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "admin_id", nullable = true)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Admin admin;
 
     @ManyToMany(mappedBy = "subjects", fetch = FetchType.LAZY)

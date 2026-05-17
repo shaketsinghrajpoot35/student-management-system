@@ -4,6 +4,8 @@ import com.smartstudent.main.enums.AttendanceStatus;
 import jakarta.persistence.*;
 import lombok.*;
 import java.time.LocalDate;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(name = "attendance", uniqueConstraints = {
@@ -33,6 +35,7 @@ public class Attendance {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "marked_by", nullable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Admin markedBy;
 
     private String remarks;
