@@ -7,6 +7,7 @@ A full-stack, production-ready web application for securely managing student rec
 ## 📋 Table of Contents
 
 - [Overview](#-overview)
+- [Demo Video](#-demo-video)
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#-project-structure)
@@ -25,6 +26,16 @@ A full-stack, production-ready web application for securely managing student rec
 ## 🌟 Overview
 
 EduTrack is a secure, role-based student management platform designed for schools and educational institutions. It provides admins with tools to register students, manage documents, track attendance, generate reports, and control academic records — all protected by JWT authentication and AES-256 field-level encryption for sensitive data.
+
+---
+
+## 🎬 Demo Video
+
+> 📺 **Watch the full demo** to see the system in action — including student registration, document management, attendance tracking, and more.
+
+[![Demo Video](https://img.shields.io/badge/▶%20Watch%20Demo-Google%20Drive-blue?style=for-the-badge&logo=google-drive)](https://drive.google.com/file/d/1AwQPkKCq9jS4-ivBxj75WkeoUwl2aekA/view?usp=sharing)
+
+🔗 **Direct Link:** [https://drive.google.com/file/d/1AwQPkKCq9jS4-ivBxj75WkeoUwl2aekA/view?usp=sharing](https://drive.google.com/file/d/1AwQPkKCq9jS4-ivBxj75WkeoUwl2aekA/view?usp=sharing)
 
 ---
 
