@@ -8,6 +8,7 @@ A full-stack, production-ready web application for securely managing student rec
 
 - [Overview](#-overview)
 - [Demo Video](#-demo-video)
+- [Screenshots](#-screenshots)
 - [Features](#-features)
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#-project-structure)
@@ -36,6 +37,43 @@ EduTrack is a secure, role-based student management platform designed for school
 [![Demo Video](https://img.shields.io/badge/▶%20Watch%20Demo-Google%20Drive-blue?style=for-the-badge&logo=google-drive)](https://drive.google.com/file/d/1AwQPkKCq9jS4-ivBxj75WkeoUwl2aekA/view?usp=sharing)
 
 🔗 **Direct Link:** [https://drive.google.com/file/d/1AwQPkKCq9jS4-ivBxj75WkeoUwl2aekA/view?usp=sharing](https://drive.google.com/file/d/1AwQPkKCq9jS4-ivBxj75WkeoUwl2aekA/view?usp=sharing)
+
+---
+
+## 📸 Screenshots
+
+### 🏠 Landing Page
+![Landing Page](screenshots/01_landing_page.png)
+
+### ✨ Features Section
+![Features Section](screenshots/02_features_section.png)
+
+### 📝 Sign Up
+![Sign Up](screenshots/04_signup.png)
+
+### 🔐 Admin Login
+![Admin Login](screenshots/05_login.png)
+
+### 📊 Dashboard
+![Dashboard](screenshots/06_dashboard.png)
+
+### 👥 Students List
+![Students List](screenshots/07_students_list.png)
+
+### ➕ Register Student
+![Register Student](screenshots/08_register_student.png)
+
+### 👤 Student Details
+![Student Details](screenshots/12_student_details.png)
+
+### 📚 Subjects Management
+![Subjects](screenshots/09_subjects.png)
+
+### 📅 Attendance Tracking
+![Attendance](screenshots/10_attendance.png)
+
+### 👨‍🏫 Staff Management
+![Staff Management](screenshots/11_staff_management.png)
 
 ---
 
