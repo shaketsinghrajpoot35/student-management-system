@@ -54,7 +54,7 @@ EduTrack is a secure, role-based student management platform designed for school
 | Spring Boot | 3.4.5 | Core framework |
 | Spring Security | 6.x | Authentication & authorization |
 | Spring Data JPA | 3.x | ORM & database access |
-| JJWT | 0.12.6 | JWT token generation & validation |
+| JWT | 0.12.6 | JWT token generation & validation |
 | MySQL | 8.x | Relational database |
 | Lombok | Latest | Boilerplate reduction |
 | OpenPDF | 2.0.3 | PDF report generation |
