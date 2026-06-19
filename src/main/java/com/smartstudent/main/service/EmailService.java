@@ -17,7 +17,7 @@ import java.util.Map;
 @Slf4j
 public class EmailService {
 
-    @Value("${app.mail.from:${spring.mail.username}}")
+    @Value("${app.mail.from}")
     private String fromEmail;
 
     @Value("${spring.mail.password}")

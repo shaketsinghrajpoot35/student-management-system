@@ -1,4 +1,0 @@
--- V1 Baseline: Existing schema is already in place (admins, students, academic_details,
--- bank_details, subjects, student_documents, etc.)
--- This migration is intentionally empty; it serves as the Flyway baseline
--- so that V2+ migrations can be applied on top of the existing database.
